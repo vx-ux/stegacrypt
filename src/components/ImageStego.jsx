@@ -86,16 +86,10 @@ export default function ImageStego() {
         imageData.height
       );
 
-      const encodedBuffer = await runWorkerTask(
+      const encodedData = await runWorkerTask(
         'lsb:encode',
         { imageData: clonedData, message, password, bitsPerChannel },
         [clonedData.data.buffer]
-      );
-
-      const encodedData = new ImageData(
-        new Uint8ClampedArray(encodedBuffer),
-        imageData.width,
-        imageData.height
       );
 
       const offCanvas = document.createElement('canvas');

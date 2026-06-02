@@ -79,9 +79,8 @@ export default function Steganalysis() {
 
     try {
       const clonedData = new ImageData(new Uint8ClampedArray(imageData.data), imageData.width, imageData.height);
-      const buffers = await runWorkerTask('analysis:bitPlanes', { imageData: clonedData, channel: selectedChannel }, [clonedData.data.buffer]);
+      const planes = await runWorkerTask('analysis:bitPlanes', { imageData: clonedData, channel: selectedChannel }, [clonedData.data.buffer]);
       
-      const planes = buffers.map(buf => new ImageData(new Uint8ClampedArray(buf), imageData.width, imageData.height));
       setBitPlanes(planes);
       setStatus({ type: 'success', text: `Extracted ${planes.length} bit planes for the ${selectedChannel.toUpperCase()} channel.` });
     } catch (err) {
@@ -125,9 +124,8 @@ export default function Steganalysis() {
 
     try {
       const clonedData = new ImageData(new Uint8ClampedArray(imageData.data), imageData.width, imageData.height);
-      const buffer = await runWorkerTask('analysis:visualAttack', { imageData: clonedData }, [clonedData.data.buffer]);
+      const resultData = await runWorkerTask('analysis:visualAttack', { imageData: clonedData }, [clonedData.data.buffer]);
       
-      const resultData = new ImageData(new Uint8ClampedArray(buffer), imageData.width, imageData.height);
       setVisualAttackData(resultData);
       setStatus({ type: 'success', text: 'Visual attack applied — LSB values amplified to full range.' });
     } catch (err) {
