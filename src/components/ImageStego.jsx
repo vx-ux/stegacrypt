@@ -17,15 +17,16 @@ export default function ImageStego() {
   const [imagePreview, setImagePreview] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  const canvasOriginalRef = useRef(null);
-  const canvasResultRef = useRef(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     return () => {
       if (imagePreview) URL.revokeObjectURL(imagePreview);
+      if (mode === 'encode' && typeof result === 'string' && result.startsWith('blob:')) {
+        URL.revokeObjectURL(result);
+      }
     };
-  }, [imagePreview]);
+  }, [imagePreview, result, mode]);
 
   const loadImage = useCallback((file) => {
     if (!file || !file.type.startsWith('image/')) {
@@ -51,7 +52,7 @@ export default function ImageStego() {
       setResult(null);
       setStatus(null);
 
-      const canvas = canvasOriginalRef.current;
+      const canvas = document.createElement('canvas');
       canvas.width = img.width;
       canvas.height = img.height;
       const ctx = canvas.getContext('2d');
@@ -97,12 +98,19 @@ export default function ImageStego() {
         imageData.height
       );
 
-      const canvas = canvasResultRef.current;
-      canvas.width = encodedData.width;
-      canvas.height = encodedData.height;
-      canvas.getContext('2d').putImageData(encodedData, 0, 0);
+      const offCanvas = document.createElement('canvas');
+      offCanvas.width = encodedData.width;
+      offCanvas.height = encodedData.height;
+      offCanvas.getContext('2d').putImageData(encodedData, 0, 0);
 
-      setResult(canvas);
+      const blob = await new Promise(resolve => offCanvas.toBlob(resolve, 'image/png'));
+      const url = URL.createObjectURL(blob);
+
+      if (typeof result === 'string' && result.startsWith('blob:')) {
+        URL.revokeObjectURL(result);
+      }
+      
+      setResult(url);
       setStatus({
         type: 'success',
         text: `Encoded ${message.length} characters using ${bitsPerChannel}-bit LSB.`,
@@ -149,11 +157,10 @@ export default function ImageStego() {
   };
 
   const handleDownload = () => {
-    const canvas = canvasResultRef.current;
-    if (!canvas) return;
+    if (!result || typeof result !== 'string') return;
     const link = document.createElement('a');
     link.download = 'stegacrypt_encoded.png';
-    link.href = canvas.toDataURL('image/png');
+    link.href = result;
     link.click();
   };
 
@@ -194,8 +201,8 @@ export default function ImageStego() {
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
         >
-          {image ? (
-            <canvas ref={canvasOriginalRef} className="drop-zone-preview" />
+          {imagePreview ? (
+            <img src={imagePreview} className="drop-zone-preview" alt="Preview" />
           ) : (
             <>
               <div className="drop-zone-icon"><Upload size={32} /></div>
@@ -306,20 +313,19 @@ export default function ImageStego() {
           <div className="comparison-grid">
             <div className="comparison-panel">
               <h4>Original</h4>
-              <canvas
-                ref={(el) => {
-                  if (el && image) {
-                    el.width = image.width;
-                    el.height = image.height;
-                    el.getContext('2d').drawImage(image, 0, 0);
-                  }
-                }}
-                style={{ maxWidth: '100%', maxHeight: '280px', borderRadius: 'var(--radius-sm)' }}
+              <img 
+                src={imagePreview} 
+                style={{ maxWidth: '100%', maxHeight: '280px', borderRadius: 'var(--radius-sm)' }} 
+                alt="Original" 
               />
             </div>
             <div className="comparison-panel">
               <h4>Encoded</h4>
-              <canvas ref={canvasResultRef} style={{ maxWidth: '100%', maxHeight: '280px', borderRadius: 'var(--radius-sm)' }} />
+              <img 
+                src={result} 
+                style={{ maxWidth: '100%', maxHeight: '280px', borderRadius: 'var(--radius-sm)' }} 
+                alt="Encoded" 
+              />
             </div>
           </div>
         )}
