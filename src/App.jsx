@@ -5,13 +5,15 @@ import MetadataViewer from './components/MetadataViewer';
 import Steganalysis from './components/Steganalysis';
 import ErrorBoundary from './components/ErrorBoundary';
 import ParticleCanvas from './components/ParticleCanvas';
-import { Shield, ImageIcon, Type, Search, Microscope, Menu, X, ArrowRight, Layers } from './components/Icons';
+import AudioStego from './components/AudioStego';
+import { Shield, ImageIcon, Type, Search, Microscope, Volume2, Menu, X, ArrowRight, Layers } from './components/Icons';
 import './index.css';
 
 const TABS = [
   { id: 'home', label: 'Home', Icon: null },
   { id: 'image', label: 'Image', Icon: ImageIcon },
   { id: 'text', label: 'Text', Icon: Type },
+  { id: 'audio', label: 'Audio', Icon: Volume2 },
   { id: 'metadata', label: 'Metadata', Icon: Search },
   { id: 'analysis', label: 'Analysis', Icon: Microscope },
 ];
@@ -85,6 +87,13 @@ function Hero({ setActiveTab }) {
       desc: 'Detect hidden payloads through bit plane extraction, chi-square statistical tests, and visual attacks.',
       tab: 'analysis',
       accent: 'var(--accent-orange)',
+    },
+    {
+      Icon: Volume2,
+      title: 'Audio Steganography',
+      desc: 'Conceal messages in WAV audio samples using LSB encoding. Inaudible modification of audio data.',
+      tab: 'audio',
+      accent: 'var(--accent-pink, #ec4899)',
     },
   ];
 
@@ -166,6 +175,8 @@ export default function App() {
         return <ErrorBoundary key="image"><ImageStego /></ErrorBoundary>;
       case 'text':
         return <ErrorBoundary key="text"><TextStego /></ErrorBoundary>;
+      case 'audio':
+        return <ErrorBoundary key="audio"><AudioStego /></ErrorBoundary>;
       case 'metadata':
         return <ErrorBoundary key="metadata"><MetadataViewer /></ErrorBoundary>;
       case 'analysis':
