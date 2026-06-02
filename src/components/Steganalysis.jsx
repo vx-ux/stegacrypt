@@ -100,10 +100,7 @@ export default function Steganalysis() {
       const results = await runWorkerTask('analysis:chiSquare', { imageData: clonedData }, [clonedData.data.buffer]);
       
       setChiResults(results);
-      setStatus({
-        type: results.isSuspicious ? 'warning' : 'success',
-        text: results.confidence,
-      });
+      setStatus(null);
     } catch (err) {
       setStatus({ type: 'error', text: err.message });
     } finally {
