@@ -47,7 +47,7 @@ self.onmessage = async (e) => {
       case 'analysis:bitPlanes':
         // payload: { imageData, channel }
         result = extractBitPlanes(payload.imageData, payload.channel);
-        transfer = result.map((imgData) => imgData.data.buffer);
+        transfer = result.map((plane) => plane.imageData.data.buffer);
         break;
 
       case 'analysis:visualAttack':
