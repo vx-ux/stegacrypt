@@ -17,13 +17,13 @@ self.onmessage = async (e) => {
       // ─── Image Steganography ───
       case 'lsb:encode':
         // payload: { imageData, message, password, bitsPerChannel }
-        result = encode(payload.imageData, payload.message, payload.password, payload.bitsPerChannel);
+        result = encode(payload.imageData, payload.message, payload.bitsPerChannel, payload.password);
         transfer = [result.data.buffer];
         break;
 
       case 'lsb:decode':
         // payload: { imageData, password, bitsPerChannel }
-        result = decode(payload.imageData, payload.password, payload.bitsPerChannel);
+        result = decode(payload.imageData, payload.bitsPerChannel, payload.password);
         break;
 
       // ─── Audio Steganography ───
