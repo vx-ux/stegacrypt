@@ -129,6 +129,9 @@ function regularizedGammaP(a, x) {
   if (x < 0) return 0;
   if (x === 0) return 0;
 
+  // Short-circuit for large x to prevent Infinity * 0 = NaN in floating point math
+  if (x > a + 100) return 1;
+
   // Use series expansion
   const maxIterations = 200;
   let sum = 0;
