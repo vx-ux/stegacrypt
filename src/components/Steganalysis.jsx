@@ -4,6 +4,7 @@ import { Upload, CheckCircle, XCircle, AlertTriangle, Grid, BarChart, Eye, Cross
 
 export default function Steganalysis() {
   const [image, setImage] = useState(null);
+  const [imageUrl, setImageUrl] = useState(null); // separate dataUrl for preview
   const [imageData, setImageData] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState('bitplane');
@@ -15,6 +16,8 @@ export default function Steganalysis() {
   const [status, setStatus] = useState(null);
 
   const fileInputRef = useRef(null);
+  // This canvas is always mounted (hidden) so canvasRef.current is never null
+  // when img.onload fires — even before React re-renders with the image state.
   const canvasRef = useRef(null);
   const visualAttackCanvasRef = useRef(null);
 
@@ -26,22 +29,26 @@ export default function Steganalysis() {
 
     const reader = new FileReader();
     reader.onload = (e) => {
+      const dataUrl = e.target.result;
       const img = new Image();
       img.onload = () => {
+        // canvasRef is always mounted (hidden), so this is safe regardless of React render timing
+        const canvas = canvasRef.current;
+        canvas.width = img.width;
+        canvas.height = img.height;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        const data = canvas.getContext('2d').getImageData(0, 0, img.width, img.height);
+
         setImage(img);
+        setImageUrl(dataUrl);
+        setImageData(data);
         setBitPlanes([]);
         setChiResults(null);
         setHistogram(null);
         setVisualAttackData(null);
         setStatus(null);
-
-        const canvas = canvasRef.current;
-        canvas.width = img.width;
-        canvas.height = img.height;
-        canvas.getContext('2d').drawImage(img, 0, 0);
-        setImageData(canvas.getContext('2d').getImageData(0, 0, img.width, img.height));
       };
-      img.src = e.target.result;
+      img.src = dataUrl;
     };
     reader.readAsDataURL(file);
   }, []);
@@ -129,6 +136,9 @@ export default function Steganalysis() {
         <p>Detect hidden payloads in images through statistical analysis, bit plane extraction, and visual attacks.</p>
       </div>
 
+      {/* Hidden extraction canvas — always in DOM so canvasRef is never null on img.onload */}
+      <canvas ref={canvasRef} style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }} aria-hidden="true" />
+
       <div className="glass-card">
         <div
           className={`drop-zone ${isDragging ? 'dragging' : ''}`}
@@ -137,8 +147,8 @@ export default function Steganalysis() {
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
         >
-          {image ? (
-            <canvas ref={canvasRef} className="drop-zone-preview" />
+          {imageUrl ? (
+            <img src={imageUrl} alt="Uploaded for analysis" className="drop-zone-preview" />
           ) : (
             <>
               <div className="drop-zone-icon"><Upload size={32} /></div>
@@ -155,7 +165,7 @@ export default function Steganalysis() {
           />
         </div>
 
-        {image && (
+        {imageUrl && (
           <>
             <div className="toggle-group" style={{ marginTop: 'var(--space-lg)' }}>
               {analysisTabs.map((tab) => (
