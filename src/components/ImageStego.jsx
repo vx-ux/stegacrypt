@@ -1,6 +1,7 @@
-import { useState, useCallback, useRef } from 'react';
-import { encode, decode, getCapacity } from '../utils/lsb';
-import { Lock, Unlock, Upload, Download, Copy, CheckCircle, XCircle } from './Icons';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { getCapacity } from '../utils/lsb';
+import { runWorkerTask } from '../workers/workerClient';
+import { Lock, Unlock, Upload, Download, Copy, CheckCircle, XCircle, Loader } from './Icons';
 
 export default function ImageStego() {
   const [mode, setMode] = useState('encode');
@@ -12,11 +13,18 @@ export default function ImageStego() {
   const [result, setResult] = useState(null);
   const [status, setStatus] = useState(null);
   const [capacity, setCapacity] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
 
   const canvasOriginalRef = useRef(null);
   const canvasResultRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+    };
+  }, [imagePreview]);
 
   const loadImage = useCallback((file) => {
     if (!file || !file.type.startsWith('image/')) {
@@ -24,27 +32,35 @@ export default function ImageStego() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        setImage(img);
-        setResult(null);
-        setStatus(null);
+    if (file.size > 20 * 1024 * 1024) {
+      setStatus({ type: 'error', text: 'File exceeds 20MB limit.' });
+      return;
+    }
 
-        const canvas = canvasOriginalRef.current;
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        const data = ctx.getImageData(0, 0, img.width, img.height);
-        setImageData(data);
-        setCapacity(getCapacity(data, bitsPerChannel));
-      };
-      img.src = e.target.result;
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
+
+    const url = URL.createObjectURL(file);
+    setImagePreview(url);
+
+    const img = new Image();
+    img.onload = () => {
+      setImage(img);
+      setResult(null);
+      setStatus(null);
+
+      const canvas = canvasOriginalRef.current;
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, img.width, img.height);
+      setImageData(data);
+      setCapacity(getCapacity(data, bitsPerChannel));
     };
-    reader.readAsDataURL(file);
-  }, [bitsPerChannel]);
+    img.src = url;
+  }, [bitsPerChannel, imagePreview]);
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();
@@ -52,11 +68,14 @@ export default function ImageStego() {
     loadImage(e.dataTransfer.files[0]);
   }, [loadImage]);
 
-  const handleEncode = () => {
+  const handleEncode = async () => {
     if (!imageData || !message) {
       setStatus({ type: 'error', text: 'Please load an image and enter a message.' });
       return;
     }
+
+    setIsProcessing(true);
+    setStatus(null);
 
     try {
       const clonedData = new ImageData(
@@ -65,12 +84,22 @@ export default function ImageStego() {
         imageData.height
       );
 
-      const encoded = encode(clonedData, message, bitsPerChannel, password);
+      const encodedBuffer = await runWorkerTask(
+        'lsb:encode',
+        { imageData: clonedData, message, password, bitsPerChannel },
+        [clonedData.data.buffer]
+      );
+
+      const encodedData = new ImageData(
+        new Uint8ClampedArray(encodedBuffer),
+        imageData.width,
+        imageData.height
+      );
 
       const canvas = canvasResultRef.current;
-      canvas.width = encoded.width;
-      canvas.height = encoded.height;
-      canvas.getContext('2d').putImageData(encoded, 0, 0);
+      canvas.width = encodedData.width;
+      canvas.height = encodedData.height;
+      canvas.getContext('2d').putImageData(encodedData, 0, 0);
 
       setResult(canvas);
       setStatus({
@@ -79,17 +108,33 @@ export default function ImageStego() {
       });
     } catch (err) {
       setStatus({ type: 'error', text: err.message });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const handleDecode = () => {
+  const handleDecode = async () => {
     if (!imageData) {
       setStatus({ type: 'error', text: 'Please load an image to decode.' });
       return;
     }
 
+    setIsProcessing(true);
+    setStatus(null);
+
     try {
-      const decoded = decode(imageData, bitsPerChannel, password);
+      const clonedData = new ImageData(
+        new Uint8ClampedArray(imageData.data),
+        imageData.width,
+        imageData.height
+      );
+
+      const decoded = await runWorkerTask('lsb:decode', {
+        imageData: clonedData,
+        password,
+        bitsPerChannel
+      });
+
       setResult(decoded);
       setStatus({
         type: 'success',
@@ -97,6 +142,8 @@ export default function ImageStego() {
       });
     } catch (err) {
       setStatus({ type: 'error', text: err.message });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -223,8 +270,9 @@ export default function ImageStego() {
             )}
 
             <div className="btn-group" style={{ marginTop: 'var(--space-lg)' }}>
-              <button className="btn btn-primary" onClick={handleEncode} disabled={!image || !message}>
-                <Lock size={15} /> Encode message
+              <button className="btn btn-primary" onClick={handleEncode} disabled={!image || !message || isProcessing}>
+                {isProcessing ? <Loader size={15} /> : <Lock size={15} />} 
+                {isProcessing ? 'Encoding...' : 'Encode message'}
               </button>
               {result && (
                 <button className="btn btn-secondary" onClick={handleDownload}>
@@ -237,9 +285,10 @@ export default function ImageStego() {
 
         {mode === 'decode' && (
           <div className="btn-group" style={{ marginTop: 'var(--space-lg)' }}>
-            <button className="btn btn-primary" onClick={handleDecode} disabled={!image}>
-              <Unlock size={15} /> Decode message
-            </button>
+              <button className="btn btn-primary" onClick={handleDecode} disabled={!image || isProcessing}>
+                {isProcessing ? <Loader size={15} /> : <Unlock size={15} />} 
+                {isProcessing ? 'Decoding...' : 'Decode message'}
+              </button>
           </div>
         )}
 

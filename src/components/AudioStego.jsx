@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
-import { encodeAudio, decodeAudio, getAudioCapacity, getWaveformData } from '../utils/audioStego';
-import { Lock, Unlock, Upload, Download, Copy, CheckCircle, XCircle, Info } from './Icons';
+import { getAudioCapacity, getWaveformData } from '../utils/audioStego';
+import { runWorkerTask } from '../workers/workerClient';
+import { Lock, Unlock, Upload, Download, Copy, CheckCircle, XCircle, Info, Loader } from './Icons';
 
 /**
  * Waveform bar-chart visualizer.
@@ -41,6 +42,7 @@ export default function AudioStego() {
   const [decodedText, setDecodedText] = useState('');
   const [encodedBuffer, setEncodedBuffer] = useState(null); // result ArrayBuffer for download
   const [isDragging, setIsDragging]   = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -48,6 +50,12 @@ export default function AudioStego() {
 
   const loadFile = useCallback((file) => {
     if (!file) return;
+    
+    if (file.size > 50 * 1024 * 1024) {
+      setStatus({ type: 'error', text: 'File exceeds 50MB limit.' });
+      return;
+    }
+
     if (!file.name.toLowerCase().endsWith('.wav')) {
       setStatus({ type: 'error', text: 'Only WAV files are supported. Please upload a .wav file.' });
       return;
@@ -83,36 +91,53 @@ export default function AudioStego() {
 
   // ── Encode ──────────────────────────────────────────────────────────────────
 
-  const handleEncode = () => {
+  const handleEncode = async () => {
     if (!audioBuffer || !message) {
       setStatus({ type: 'error', text: 'Please upload a WAV file and enter a message.' });
       return;
     }
+
+    setIsProcessing(true);
+    setStatus(null);
+
     try {
-      const result = encodeAudio(audioBuffer, message, password);
+      const result = await runWorkerTask(
+        'audio:encode', 
+        { buffer: audioBuffer, message, password },
+        // Transfer a copy to not destroy the original buffer for the user
+        [audioBuffer.slice(0)]
+      );
       const resultWf = getWaveformData(result, 120);
       setEncodedBuffer(result);
       setEncodedWaveform(resultWf);
       setStatus({ type: 'success', text: `Encoded ${message.length} characters into "${fileName}".` });
     } catch (err) {
       setStatus({ type: 'error', text: err.message });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   // ── Decode ──────────────────────────────────────────────────────────────────
 
-  const handleDecode = () => {
+  const handleDecode = async () => {
     if (!audioBuffer) {
       setStatus({ type: 'error', text: 'Please upload a WAV file to decode.' });
       return;
     }
+
+    setIsProcessing(true);
+    setStatus(null);
+
     try {
-      const text = decodeAudio(audioBuffer, password);
+      const text = await runWorkerTask('audio:decode', { buffer: audioBuffer, password });
       setDecodedText(text);
       setStatus({ type: 'success', text: `Decoded ${text.length} characters from "${fileName}".` });
     } catch (err) {
       setStatus({ type: 'error', text: err.message });
       setDecodedText('');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -288,8 +313,9 @@ export default function AudioStego() {
                 </div>
 
                 <div className="btn-group" style={{ marginTop: 'var(--space-lg)' }}>
-                  <button className="btn btn-primary" onClick={handleEncode} disabled={!message}>
-                    <Lock size={15} /> Encode message
+                  <button className="btn btn-primary" onClick={handleEncode} disabled={!message || isProcessing}>
+                    {isProcessing ? <Loader size={15} /> : <Lock size={15} />} 
+                    {isProcessing ? 'Encoding...' : 'Encode message'}
                   </button>
                   {encodedBuffer && (
                     <button className="btn btn-secondary" onClick={handleDownload}>
@@ -302,8 +328,9 @@ export default function AudioStego() {
 
             {mode === 'decode' && (
               <div className="btn-group" style={{ marginTop: 'var(--space-lg)' }}>
-                <button className="btn btn-primary" onClick={handleDecode}>
-                  <Unlock size={15} /> Decode message
+                <button className="btn btn-primary" onClick={handleDecode} disabled={isProcessing}>
+                  {isProcessing ? <Loader size={15} /> : <Unlock size={15} />} 
+                  {isProcessing ? 'Decoding...' : 'Decode message'}
                 </button>
               </div>
             )}

@@ -1215,3 +1215,13 @@ textarea.input-field {
   min-width: 1px;
   transition: height 0.1s ease;
 }
+
+/* ===== Loading Spinner ===== */
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
