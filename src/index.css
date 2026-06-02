@@ -1148,3 +1148,70 @@ textarea.input-field {
   justify-content: center;
   flex-wrap: wrap;
 }
+
+/* ===== Audio Steganography ===== */
+.audio-loaded {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.audio-loaded-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-lg);
+  background: rgba(6, 182, 212, 0.1);
+  border: 1px solid rgba(6, 182, 212, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-cyan);
+  margin-bottom: var(--space-xs);
+}
+
+.audio-loaded-name {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--accent-cyan);
+  font-weight: 500;
+}
+
+/* Waveform visualizer */
+.waveform-section {
+  margin-top: var(--space-lg);
+}
+
+.waveform-wrapper {
+  width: 100%;
+}
+
+.waveform-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--space-sm);
+  font-family: var(--font-mono);
+}
+
+.waveform-bars {
+  display: flex;
+  align-items: center;
+  gap: 1.5px;
+  height: 72px;
+  width: 100%;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  overflow: hidden;
+}
+
+.waveform-bar {
+  flex: 1;
+  border-radius: 1px;
+  min-width: 1px;
+  transition: height 0.1s ease;
+}
