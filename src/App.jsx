@@ -141,7 +141,7 @@ function Footer() {
   return (
     <footer className="footer">
       <p>
-        StegaCrypt &middot; Built for <strong>Nebula</strong> by MDG Space &middot; All processing runs locally in your browser
+        StegaCrypt &middot; All processing runs locally in your browser &middot; No data ever leaves your machine
       </p>
     </footer>
   );
