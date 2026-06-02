@@ -1,8 +1,15 @@
 # StegaCrypt — Steganography Toolkit
 
-A browser-based steganography toolkit for encoding, decoding, and analyzing hidden data in images and text. All processing runs client-side — no data ever leaves your browser.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/vx-ux/stegacrypt)
+
+**Live Demo:** [https://stegacrypt.vercel.app](https://stegacrypt.vercel.app) (Replace with your actual Vercel URL once deployed)
+
+A browser-based steganography toolkit for encoding, decoding, and analyzing hidden data in images, text, and audio. All processing runs client-side — no data ever leaves your browser.
 
 Built with React + Vite. Zero backend. Zero external processing dependencies.
+
+![StegaCrypt Hero](public/assets/hero.png)
 
 ## Features
 
@@ -13,6 +20,14 @@ Built with React + Vite. Zero backend. Zero external processing dependencies.
 - Side-by-side original vs. encoded comparison
 - Real-time capacity indicator
 - Download encoded images as PNG
+
+### Audio Steganography
+![Audio Steganography UI](public/assets/audio-stego.png)
+- Hide text inside **16-bit PCM WAV** audio samples using LSB encoding
+- Modification is ±1 amplitude unit (completely inaudible to the human ear)
+- Waveform bar chart visualization for side-by-side comparison (original vs. encoded)
+- Optional XOR password encryption
+- Download encoded audio as a playable WAV file
 
 ### Text Steganography
 - Conceal messages within ordinary text using **zero-width Unicode characters**
@@ -37,6 +52,7 @@ Built with React + Vite. Zero backend. Zero external processing dependencies.
 - **React** — UI components
 - **Vite** — Build tooling and dev server
 - **Canvas API** — Image pixel manipulation
+- **Web Audio API / ArrayBuffer** — Audio sample parsing
 - **Web Crypto / XOR** — Payload encryption
 - **Zero-width Unicode** — Text steganography
 - **Custom EXIF parser** — No external dependencies for metadata extraction
@@ -45,7 +61,7 @@ Built with React + Vite. Zero backend. Zero external processing dependencies.
 
 ```bash
 # Clone the repository
-git clone https://github.com/<your-username>/stegacrypt.git
+git clone https://github.com/vx-ux/stegacrypt.git
 cd stegacrypt
 
 # Install dependencies
@@ -64,33 +80,35 @@ src/
 ├── components/
 │   ├── Icons.jsx            # Inline SVG icon library
 │   ├── ImageStego.jsx       # Image steganography UI
+│   ├── AudioStego.jsx       # Audio WAV steganography UI
 │   ├── TextStego.jsx        # Text steganography UI
 │   ├── MetadataViewer.jsx   # EXIF metadata viewer
-│   └── Steganalysis.jsx     # Steganalysis tools UI
+│   ├── Steganalysis.jsx     # Steganalysis tools UI
+│   ├── ErrorBoundary.jsx    # Crash protection component
+│   └── ParticleCanvas.jsx   # Cyberpunk hero background animation
 ├── utils/
-│   ├── lsb.js               # LSB encode/decode algorithms
-│   ├── textStego.js          # Zero-width character encoding
-│   ├── exif.js               # EXIF metadata parser
-│   └── analysis.js           # Bit plane, chi-square, histogram, visual attack
-├── App.jsx                   # Main app with navigation
-├── main.jsx                  # Entry point
-└── index.css                 # Design system and styles
+│   ├── lsb.js               # LSB encode/decode algorithms (Image)
+│   ├── audioStego.js        # WAV parsing and LSB embedding (Audio)
+│   ├── textStego.js         # Zero-width character encoding (Text)
+│   ├── exif.js              # EXIF metadata parser
+│   └── analysis.js          # Bit plane, chi-square, histogram, visual attack
+├── App.jsx                  # Main app with navigation
+├── main.jsx                 # Entry point
+└── index.css                # Design system and styles
 ```
 
 ## How It Works
 
-### LSB Steganography
-
-Each pixel in an image has RGB channels, each stored as an 8-bit value (0–255). The **Least Significant Bit** contributes the smallest amount to the color value, so changing it is imperceptible to the human eye.
+### Image & Audio LSB Steganography
+Both image pixels (RGB channels) and audio samples (16-bit PCM) are represented numerically. The **Least Significant Bit** contributes the smallest amount to the overall value, so changing it is imperceptible to human senses. 
 
 The encoder:
 1. Converts the secret message to binary
 2. Prepends a magic header (`STCR`) and message length
 3. Optionally XOR-encrypts the payload with a password
-4. Replaces the LSBs of each pixel's RGB channels with message bits
+4. Replaces the LSBs of the host file's data points with message bits
 
 ### Zero-Width Text Steganography
-
 Binary data is represented as invisible Unicode characters embedded between visible text:
 - `0` → Zero-Width Space (U+200B)
 - `1` → Zero-Width Non-Joiner (U+200C)
@@ -98,14 +116,6 @@ Binary data is represented as invisible Unicode characters embedded between visi
 
 The resulting text looks identical when displayed but contains the hidden message.
 
-### Chi-Square Detection
-
-The chi-square test checks whether pixel value pairs (2i, 2i+1) have uniform distribution — a signature of LSB embedding. Natural images have non-uniform pair distributions; steganographic images trend toward uniformity.
-
-## Privacy
-
-All processing happens entirely in your browser using the Canvas API and JavaScript. No images or text are uploaded to any server. No network requests are made during encoding, decoding, or analysis.
-
 ## License
 
-MIT
+MIT License - See the [LICENSE](LICENSE) file for details.
