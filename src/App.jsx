@@ -3,6 +3,7 @@ import ImageStego from './components/ImageStego';
 import TextStego from './components/TextStego';
 import MetadataViewer from './components/MetadataViewer';
 import Steganalysis from './components/Steganalysis';
+import ErrorBoundary from './components/ErrorBoundary';
 import { Shield, ImageIcon, Type, Search, Microscope, Menu, X, ArrowRight, Layers } from './components/Icons';
 import './index.css';
 
@@ -155,13 +156,13 @@ export default function App() {
       case 'home':
         return <Hero setActiveTab={setActiveTab} />;
       case 'image':
-        return <ImageStego />;
+        return <ErrorBoundary key="image"><ImageStego /></ErrorBoundary>;
       case 'text':
-        return <TextStego />;
+        return <ErrorBoundary key="text"><TextStego /></ErrorBoundary>;
       case 'metadata':
-        return <MetadataViewer />;
+        return <ErrorBoundary key="metadata"><MetadataViewer /></ErrorBoundary>;
       case 'analysis':
-        return <Steganalysis />;
+        return <ErrorBoundary key="analysis"><Steganalysis /></ErrorBoundary>;
       default:
         return <Hero setActiveTab={setActiveTab} />;
     }
