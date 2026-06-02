@@ -273,6 +273,7 @@ body {
   padding: var(--space-3xl) var(--space-xl) var(--space-2xl);
   position: relative;
   z-index: 1;
+  overflow: hidden;
 }
 
 .hero-badge {

@@ -4,6 +4,7 @@ import TextStego from './components/TextStego';
 import MetadataViewer from './components/MetadataViewer';
 import Steganalysis from './components/Steganalysis';
 import ErrorBoundary from './components/ErrorBoundary';
+import ParticleCanvas from './components/ParticleCanvas';
 import { Shield, ImageIcon, Type, Search, Microscope, Menu, X, ArrowRight, Layers } from './components/Icons';
 import './index.css';
 
@@ -89,10 +90,15 @@ function Hero({ setActiveTab }) {
 
   return (
     <section className="hero">
-      <div className="hero-badge">
-        <span className="hero-badge-dot" />
-        Client-side processing — no data leaves your browser
-      </div>
+      {/* Cyberpunk particle/dot-network background animation */}
+      <ParticleCanvas />
+
+      {/* All hero content sits above the canvas (z-index: 1) */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <div className="hero-badge">
+          <span className="hero-badge-dot" />
+          Client-side processing — no data leaves your browser
+        </div>
       <h1>
         Steganography<br />
         <span className="gradient-text">Toolkit</span>
@@ -133,6 +139,7 @@ function Hero({ setActiveTab }) {
         <span>Web Crypto</span>
         <span className="dot" />
         <span>Zero Dependencies</span>
+      </div>
       </div>
     </section>
   );
