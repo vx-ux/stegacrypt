@@ -15,6 +15,7 @@ export default function ImageStego() {
   const [capacity, setCapacity] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const canvasOriginalRef = useRef(null);
   const canvasResultRef = useRef(null);

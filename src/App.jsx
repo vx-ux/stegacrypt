@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ImageStego from './components/ImageStego';
 import TextStego from './components/TextStego';
 import MetadataViewer from './components/MetadataViewer';
@@ -165,7 +165,29 @@ function Footer() {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('home');
+  const getHashTab = () => {
+    const hash = window.location.hash.replace('#', '');
+    return TABS.some(t => t.id === hash) ? hash : 'home';
+  };
+
+  const [activeTab, setActiveTabState] = useState(getHashTab());
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setActiveTabState(getHashTab());
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const setActiveTab = (tabId) => {
+    if (tabId === 'home') {
+      window.history.pushState(null, '', window.location.pathname);
+      setActiveTabState('home');
+    } else {
+      window.location.hash = tabId;
+    }
+  };
 
   const renderContent = () => {
     switch (activeTab) {
