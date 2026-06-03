@@ -1,6 +1,7 @@
-import { useState, useCallback, useRef } from 'react';
-import { encode, decode, getCapacity } from '../utils/lsb';
-import { Lock, Unlock, Upload, Download, Copy, CheckCircle, XCircle } from './Icons';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { getCapacity } from '../utils/lsb';
+import { runWorkerTask } from '../workers/workerClient';
+import { Lock, Unlock, Upload, Download, Copy, CheckCircle, XCircle, Loader } from './Icons';
 
 export default function ImageStego() {
   const [mode, setMode] = useState('encode');
@@ -12,11 +13,20 @@ export default function ImageStego() {
   const [result, setResult] = useState(null);
   const [status, setStatus] = useState(null);
   const [capacity, setCapacity] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  const canvasOriginalRef = useRef(null);
-  const canvasResultRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+      if (mode === 'encode' && typeof result === 'string' && result.startsWith('blob:')) {
+        URL.revokeObjectURL(result);
+      }
+    };
+  }, [imagePreview, result, mode]);
 
   const loadImage = useCallback((file) => {
     if (!file || !file.type.startsWith('image/')) {
@@ -24,27 +34,35 @@ export default function ImageStego() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        setImage(img);
-        setResult(null);
-        setStatus(null);
+    if (file.size > 20 * 1024 * 1024) {
+      setStatus({ type: 'error', text: 'File exceeds 20MB limit.' });
+      return;
+    }
 
-        const canvas = canvasOriginalRef.current;
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        const data = ctx.getImageData(0, 0, img.width, img.height);
-        setImageData(data);
-        setCapacity(getCapacity(data, bitsPerChannel));
-      };
-      img.src = e.target.result;
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
+
+    const url = URL.createObjectURL(file);
+    setImagePreview(url);
+
+    const img = new Image();
+    img.onload = () => {
+      setImage(img);
+      setResult(null);
+      setStatus(null);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, img.width, img.height);
+      setImageData(data);
+      setCapacity(getCapacity(data, bitsPerChannel));
     };
-    reader.readAsDataURL(file);
-  }, [bitsPerChannel]);
+    img.src = url;
+  }, [bitsPerChannel, imagePreview]);
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();
@@ -52,11 +70,14 @@ export default function ImageStego() {
     loadImage(e.dataTransfer.files[0]);
   }, [loadImage]);
 
-  const handleEncode = () => {
+  const handleEncode = async () => {
     if (!imageData || !message) {
       setStatus({ type: 'error', text: 'Please load an image and enter a message.' });
       return;
     }
+
+    setIsProcessing(true);
+    setStatus(null);
 
     try {
       const clonedData = new ImageData(
@@ -65,31 +86,58 @@ export default function ImageStego() {
         imageData.height
       );
 
-      const encoded = encode(clonedData, message, bitsPerChannel, password);
+      const encodedData = await runWorkerTask(
+        'lsb:encode',
+        { imageData: clonedData, message, password, bitsPerChannel },
+        [clonedData.data.buffer]
+      );
 
-      const canvas = canvasResultRef.current;
-      canvas.width = encoded.width;
-      canvas.height = encoded.height;
-      canvas.getContext('2d').putImageData(encoded, 0, 0);
+      const offCanvas = document.createElement('canvas');
+      offCanvas.width = encodedData.width;
+      offCanvas.height = encodedData.height;
+      offCanvas.getContext('2d').putImageData(encodedData, 0, 0);
 
-      setResult(canvas);
+      const blob = await new Promise(resolve => offCanvas.toBlob(resolve, 'image/png'));
+      const url = URL.createObjectURL(blob);
+
+      if (typeof result === 'string' && result.startsWith('blob:')) {
+        URL.revokeObjectURL(result);
+      }
+      
+      setResult(url);
       setStatus({
         type: 'success',
         text: `Encoded ${message.length} characters using ${bitsPerChannel}-bit LSB.`,
       });
     } catch (err) {
       setStatus({ type: 'error', text: err.message });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const handleDecode = () => {
+  const handleDecode = async () => {
     if (!imageData) {
       setStatus({ type: 'error', text: 'Please load an image to decode.' });
       return;
     }
 
+    setIsProcessing(true);
+    setStatus(null);
+
     try {
-      const decoded = decode(imageData, bitsPerChannel, password);
+      const clonedData = new ImageData(
+        new Uint8ClampedArray(imageData.data),
+        imageData.width,
+        imageData.height
+      );
+
+      const decoded = await runWorkerTask('lsb:decode', {
+        imageData: clonedData,
+        password,
+        bitsPerChannel
+      });
+
       setResult(decoded);
       setStatus({
         type: 'success',
@@ -97,15 +145,16 @@ export default function ImageStego() {
       });
     } catch (err) {
       setStatus({ type: 'error', text: err.message });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const handleDownload = () => {
-    const canvas = canvasResultRef.current;
-    if (!canvas) return;
+    if (!result || typeof result !== 'string') return;
     const link = document.createElement('a');
     link.download = 'stegacrypt_encoded.png';
-    link.href = canvas.toDataURL('image/png');
+    link.href = result;
     link.click();
   };
 
@@ -146,8 +195,8 @@ export default function ImageStego() {
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
         >
-          {image ? (
-            <canvas ref={canvasOriginalRef} className="drop-zone-preview" />
+          {imagePreview ? (
+            <img src={imagePreview} className="drop-zone-preview" alt="Preview" />
           ) : (
             <>
               <div className="drop-zone-icon"><Upload size={32} /></div>
@@ -223,8 +272,9 @@ export default function ImageStego() {
             )}
 
             <div className="btn-group" style={{ marginTop: 'var(--space-lg)' }}>
-              <button className="btn btn-primary" onClick={handleEncode} disabled={!image || !message}>
-                <Lock size={15} /> Encode message
+              <button className="btn btn-primary" onClick={handleEncode} disabled={!image || !message || isProcessing}>
+                {isProcessing ? <Loader size={15} /> : <Lock size={15} />} 
+                {isProcessing ? 'Encoding...' : 'Encode message'}
               </button>
               {result && (
                 <button className="btn btn-secondary" onClick={handleDownload}>
@@ -237,9 +287,10 @@ export default function ImageStego() {
 
         {mode === 'decode' && (
           <div className="btn-group" style={{ marginTop: 'var(--space-lg)' }}>
-            <button className="btn btn-primary" onClick={handleDecode} disabled={!image}>
-              <Unlock size={15} /> Decode message
-            </button>
+              <button className="btn btn-primary" onClick={handleDecode} disabled={!image || isProcessing}>
+                {isProcessing ? <Loader size={15} /> : <Unlock size={15} />} 
+                {isProcessing ? 'Decoding...' : 'Decode message'}
+              </button>
           </div>
         )}
 
@@ -256,20 +307,19 @@ export default function ImageStego() {
           <div className="comparison-grid">
             <div className="comparison-panel">
               <h4>Original</h4>
-              <canvas
-                ref={(el) => {
-                  if (el && image) {
-                    el.width = image.width;
-                    el.height = image.height;
-                    el.getContext('2d').drawImage(image, 0, 0);
-                  }
-                }}
-                style={{ maxWidth: '100%', maxHeight: '280px', borderRadius: 'var(--radius-sm)' }}
+              <img 
+                src={imagePreview} 
+                style={{ maxWidth: '100%', maxHeight: '280px', borderRadius: 'var(--radius-sm)' }} 
+                alt="Original" 
               />
             </div>
             <div className="comparison-panel">
               <h4>Encoded</h4>
-              <canvas ref={canvasResultRef} style={{ maxWidth: '100%', maxHeight: '280px', borderRadius: 'var(--radius-sm)' }} />
+              <img 
+                src={result} 
+                style={{ maxWidth: '100%', maxHeight: '280px', borderRadius: 'var(--radius-sm)' }} 
+                alt="Encoded" 
+              />
             </div>
           </div>
         )}

@@ -1,15 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ImageStego from './components/ImageStego';
 import TextStego from './components/TextStego';
 import MetadataViewer from './components/MetadataViewer';
 import Steganalysis from './components/Steganalysis';
-import { Shield, ImageIcon, Type, Search, Microscope, Menu, X, ArrowRight, Layers } from './components/Icons';
+import ErrorBoundary from './components/ErrorBoundary';
+import ParticleCanvas from './components/ParticleCanvas';
+import AudioStego from './components/AudioStego';
+import { Shield, ImageIcon, Type, Search, Microscope, Volume2, Menu, X, ArrowRight, Layers } from './components/Icons';
 import './index.css';
 
 const TABS = [
   { id: 'home', label: 'Home', Icon: null },
   { id: 'image', label: 'Image', Icon: ImageIcon },
   { id: 'text', label: 'Text', Icon: Type },
+  { id: 'audio', label: 'Audio', Icon: Volume2 },
   { id: 'metadata', label: 'Metadata', Icon: Search },
   { id: 'analysis', label: 'Analysis', Icon: Microscope },
 ];
@@ -84,14 +88,26 @@ function Hero({ setActiveTab }) {
       tab: 'analysis',
       accent: 'var(--accent-orange)',
     },
+    {
+      Icon: Volume2,
+      title: 'Audio Steganography',
+      desc: 'Conceal messages in WAV audio samples using LSB encoding. Inaudible modification of audio data.',
+      tab: 'audio',
+      accent: 'var(--accent-pink, #ec4899)',
+    },
   ];
 
   return (
     <section className="hero">
-      <div className="hero-badge">
-        <span className="hero-badge-dot" />
-        Client-side processing — no data leaves your browser
-      </div>
+      {/* Cyberpunk particle/dot-network background animation */}
+      <ParticleCanvas />
+
+      {/* All hero content sits above the canvas (z-index: 1) */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <div className="hero-badge">
+          <span className="hero-badge-dot" />
+          Client-side processing — no data leaves your browser
+        </div>
       <h1>
         Steganography<br />
         <span className="gradient-text">Toolkit</span>
@@ -133,6 +149,7 @@ function Hero({ setActiveTab }) {
         <span className="dot" />
         <span>Zero Dependencies</span>
       </div>
+      </div>
     </section>
   );
 }
@@ -148,20 +165,44 @@ function Footer() {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('home');
+  const getHashTab = () => {
+    const hash = window.location.hash.replace('#', '');
+    return TABS.some(t => t.id === hash) ? hash : 'home';
+  };
+
+  const [activeTab, setActiveTabState] = useState(getHashTab());
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setActiveTabState(getHashTab());
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const setActiveTab = (tabId) => {
+    if (tabId === 'home') {
+      window.history.pushState(null, '', window.location.pathname);
+      setActiveTabState('home');
+    } else {
+      window.location.hash = tabId;
+    }
+  };
 
   const renderContent = () => {
     switch (activeTab) {
       case 'home':
         return <Hero setActiveTab={setActiveTab} />;
       case 'image':
-        return <ImageStego />;
+        return <ErrorBoundary key="image"><ImageStego /></ErrorBoundary>;
       case 'text':
-        return <TextStego />;
+        return <ErrorBoundary key="text"><TextStego /></ErrorBoundary>;
+      case 'audio':
+        return <ErrorBoundary key="audio"><AudioStego /></ErrorBoundary>;
       case 'metadata':
-        return <MetadataViewer />;
+        return <ErrorBoundary key="metadata"><MetadataViewer /></ErrorBoundary>;
       case 'analysis':
-        return <Steganalysis />;
+        return <ErrorBoundary key="analysis"><Steganalysis /></ErrorBoundary>;
       default:
         return <Hero setActiveTab={setActiveTab} />;
     }

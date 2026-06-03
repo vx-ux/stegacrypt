@@ -292,3 +292,29 @@ export function Layers(props) {
     </Icon>
   );
 }
+
+export function Volume2(props) {
+  return (
+    <Icon {...props}>
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+    </Icon>
+  );
+}
+
+export function Loader(props) {
+  return (
+    <Icon {...props} className={props.className ? `spinner ${props.className}` : 'spinner'}>
+      <line x1="12" y1="2" x2="12" y2="6"></line>
+      <line x1="12" y1="18" x2="12" y2="22"></line>
+      <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+      <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+      <line x1="2" y1="12" x2="6" y2="12"></line>
+      <line x1="18" y1="12" x2="22" y2="12"></line>
+      <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+      <line x1="16.24" y1="4.93" x2="19.07" y2="7.76"></line>
+    </Icon>
+  );
+}
+

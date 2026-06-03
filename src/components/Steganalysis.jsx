@@ -1,9 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { extractBitPlanes, chiSquareAnalysis, generateHistogram, visualAttack } from '../utils/analysis';
-import { Upload, CheckCircle, XCircle, AlertTriangle, Grid, BarChart, Eye, Crosshair, Info } from './Icons';
+import { generateHistogram } from '../utils/analysis';
+import { runWorkerTask } from '../workers/workerClient';
+import { Upload, CheckCircle, XCircle, AlertTriangle, Grid, BarChart, Eye, Crosshair, Info, Loader } from './Icons';
 
 export default function Steganalysis() {
   const [image, setImage] = useState(null);
+  const [imageUrl, setImageUrl] = useState(null); // separate dataUrl for preview
   const [imageData, setImageData] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState('bitplane');
@@ -13,10 +15,19 @@ export default function Steganalysis() {
   const [visualAttackData, setVisualAttackData] = useState(null);
   const [selectedChannel, setSelectedChannel] = useState('r');
   const [status, setStatus] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const fileInputRef = useRef(null);
+  // This canvas is always mounted (hidden) so canvasRef.current is never null
+  // when img.onload fires — even before React re-renders with the image state.
   const canvasRef = useRef(null);
   const visualAttackCanvasRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (imageUrl) URL.revokeObjectURL(imageUrl);
+    };
+  }, [imageUrl]);
 
   const loadImage = useCallback((file) => {
     if (!file || !file.type.startsWith('image/')) {
@@ -24,27 +35,36 @@ export default function Steganalysis() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
+    if (file.size > 20 * 1024 * 1024) {
+      setStatus({ type: 'error', text: 'File exceeds 20MB limit.' });
+      return;
+    }
+
+    if (imageUrl) {
+      URL.revokeObjectURL(imageUrl);
+    }
+
+    const dataUrl = URL.createObjectURL(file);
+    const img = new Image();
       img.onload = () => {
+        // canvasRef is always mounted (hidden), so this is safe regardless of React render timing
+        const canvas = canvasRef.current;
+        canvas.width = img.width;
+        canvas.height = img.height;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        const data = canvas.getContext('2d').getImageData(0, 0, img.width, img.height);
+
         setImage(img);
+        setImageUrl(dataUrl);
+        setImageData(data);
         setBitPlanes([]);
         setChiResults(null);
         setHistogram(null);
         setVisualAttackData(null);
         setStatus(null);
-
-        const canvas = canvasRef.current;
-        canvas.width = img.width;
-        canvas.height = img.height;
-        canvas.getContext('2d').drawImage(img, 0, 0);
-        setImageData(canvas.getContext('2d').getImageData(0, 0, img.width, img.height));
       };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  }, []);
+      img.src = dataUrl;
+  }, [imageUrl]);
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();
@@ -52,27 +72,40 @@ export default function Steganalysis() {
     loadImage(e.dataTransfer.files[0]);
   }, [loadImage]);
 
-  const runBitPlaneAnalysis = () => {
+  const runBitPlaneAnalysis = async () => {
     if (!imageData) return;
     setStatus({ type: 'success', text: 'Extracting bit planes...' });
-    setTimeout(() => {
-      const planes = extractBitPlanes(imageData, selectedChannel);
+    setIsProcessing(true);
+
+    try {
+      const clonedData = new ImageData(new Uint8ClampedArray(imageData.data), imageData.width, imageData.height);
+      const planes = await runWorkerTask('analysis:bitPlanes', { imageData: clonedData, channel: selectedChannel }, [clonedData.data.buffer]);
+      
       setBitPlanes(planes);
       setStatus({ type: 'success', text: `Extracted ${planes.length} bit planes for the ${selectedChannel.toUpperCase()} channel.` });
-    }, 50);
+    } catch (err) {
+      setStatus({ type: 'error', text: err.message });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const runChiSquare = () => {
+  const runChiSquare = async () => {
     if (!imageData) return;
     setStatus({ type: 'success', text: 'Running chi-square analysis...' });
-    setTimeout(() => {
-      const results = chiSquareAnalysis(imageData);
+    setIsProcessing(true);
+
+    try {
+      const clonedData = new ImageData(new Uint8ClampedArray(imageData.data), imageData.width, imageData.height);
+      const results = await runWorkerTask('analysis:chiSquare', { imageData: clonedData }, [clonedData.data.buffer]);
+      
       setChiResults(results);
-      setStatus({
-        type: results.isSuspicious ? 'warning' : 'success',
-        text: results.confidence,
-      });
-    }, 50);
+      setStatus(null);
+    } catch (err) {
+      setStatus({ type: 'error', text: err.message });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const runHistogram = () => {
@@ -81,10 +114,22 @@ export default function Steganalysis() {
     setStatus({ type: 'success', text: 'Histogram generated for all channels.' });
   };
 
-  const runVisualAttack = () => {
+  const runVisualAttack = async () => {
     if (!imageData) return;
-    setVisualAttackData(visualAttack(imageData));
-    setStatus({ type: 'success', text: 'Visual attack applied — LSB values amplified to full range.' });
+    setStatus({ type: 'success', text: 'Running visual attack...' });
+    setIsProcessing(true);
+
+    try {
+      const clonedData = new ImageData(new Uint8ClampedArray(imageData.data), imageData.width, imageData.height);
+      const resultData = await runWorkerTask('analysis:visualAttack', { imageData: clonedData }, [clonedData.data.buffer]);
+      
+      setVisualAttackData(resultData);
+      setStatus({ type: 'success', text: 'Visual attack applied — LSB values amplified to full range.' });
+    } catch (err) {
+      setStatus({ type: 'error', text: err.message });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   useEffect(() => {
@@ -129,6 +174,9 @@ export default function Steganalysis() {
         <p>Detect hidden payloads in images through statistical analysis, bit plane extraction, and visual attacks.</p>
       </div>
 
+      {/* Hidden extraction canvas — always in DOM so canvasRef is never null on img.onload */}
+      <canvas ref={canvasRef} style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }} aria-hidden="true" />
+
       <div className="glass-card">
         <div
           className={`drop-zone ${isDragging ? 'dragging' : ''}`}
@@ -137,8 +185,8 @@ export default function Steganalysis() {
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
         >
-          {image ? (
-            <canvas ref={canvasRef} className="drop-zone-preview" />
+          {imageUrl ? (
+            <img src={imageUrl} alt="Uploaded for analysis" className="drop-zone-preview" />
           ) : (
             <>
               <div className="drop-zone-icon"><Upload size={32} /></div>
@@ -155,7 +203,7 @@ export default function Steganalysis() {
           />
         </div>
 
-        {image && (
+        {imageUrl && (
           <>
             <div className="toggle-group" style={{ marginTop: 'var(--space-lg)' }}>
               {analysisTabs.map((tab) => (
@@ -180,8 +228,9 @@ export default function Steganalysis() {
                       <option value="b">Blue channel</option>
                     </select>
                   </div>
-                  <button className="btn btn-primary" onClick={runBitPlaneAnalysis}>
-                    <Grid size={15} /> Extract
+                  <button className="btn btn-primary" onClick={runBitPlaneAnalysis} disabled={isProcessing}>
+                    {isProcessing ? <Loader size={15} /> : <Grid size={15} />}
+                    {isProcessing ? 'Extracting...' : 'Extract'}
                   </button>
                 </div>
 
@@ -217,8 +266,9 @@ export default function Steganalysis() {
             {/* Chi-Square */}
             {activeAnalysis === 'chi' && (
               <div style={{ marginTop: 'var(--space-lg)' }}>
-                <button className="btn btn-primary" onClick={runChiSquare} style={{ marginBottom: 'var(--space-lg)' }}>
-                  <Crosshair size={15} /> Run test
+                <button className="btn btn-primary" onClick={runChiSquare} style={{ marginBottom: 'var(--space-lg)' }} disabled={isProcessing}>
+                  {isProcessing ? <Loader size={15} /> : <Crosshair size={15} />}
+                  {isProcessing ? 'Running...' : 'Run test'}
                 </button>
 
                 {chiResults && (
@@ -305,8 +355,9 @@ export default function Steganalysis() {
             {/* Visual Attack */}
             {activeAnalysis === 'visual' && (
               <div style={{ marginTop: 'var(--space-lg)' }}>
-                <button className="btn btn-primary" onClick={runVisualAttack} style={{ marginBottom: 'var(--space-lg)' }}>
-                  <Eye size={15} /> Apply attack
+                <button className="btn btn-primary" onClick={runVisualAttack} style={{ marginBottom: 'var(--space-lg)' }} disabled={isProcessing}>
+                  {isProcessing ? <Loader size={15} /> : <Eye size={15} />}
+                  {isProcessing ? 'Applying...' : 'Apply visual attack'}
                 </button>
 
                 {visualAttackData && (

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { extractExif, formatMetadata } from '../utils/exif';
 import { Upload, CheckCircle, XCircle, AlertTriangle, MapPin, Info } from './Icons';
 
@@ -13,8 +13,24 @@ export default function MetadataViewer() {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Cleanup object URL to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+    };
+  }, [imagePreview]);
+
   const loadFile = useCallback((file) => {
     if (!file) return;
+
+    if (file.size > 20 * 1024 * 1024) {
+      setStatus({ type: 'error', text: 'File exceeds 20MB limit.' });
+      return;
+    }
+
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
 
     setFileName(file.name);
     setFileSize(file.size);

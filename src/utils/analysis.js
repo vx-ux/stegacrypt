@@ -121,27 +121,56 @@ function chiSquareCDF(x, k) {
   return regularizedGammaP(k / 2, x / 2);
 }
 
-/**
- * Regularized incomplete gamma function P(a, x)
- * Using series expansion for small x
- */
 function regularizedGammaP(a, x) {
-  if (x < 0) return 0;
+  if (x < 0 || a <= 0) return 0;
   if (x === 0) return 0;
 
-  // Use series expansion
-  const maxIterations = 200;
-  let sum = 0;
-  let term = 1 / a;
-  sum = term;
+  if (x < a + 1) {
+    // Use series expansion for small x
+    const maxIterations = 200;
+    let sum = 1 / a;
+    let term = 1 / a;
+    
+    for (let n = 1; n < maxIterations; n++) {
+      term *= x / (a + n);
+      sum += term;
+      if (Math.abs(term) < 1e-10 * Math.abs(sum)) break;
+    }
+    return sum * Math.exp(-x + a * Math.log(x) - logGamma(a));
+  } else {
+    // Use continued fraction for large x to compute Q(a, x), then P = 1 - Q
+    return 1 - regularizedGammaQ(a, x);
+  }
+}
 
-  for (let n = 1; n < maxIterations; n++) {
-    term *= x / (a + n);
-    sum += term;
-    if (Math.abs(term) < 1e-10 * Math.abs(sum)) break;
+/**
+ * Regularized incomplete gamma function Q(a, x) = 1 - P(a, x)
+ * Evaluated via continued fraction using Lentz's method
+ */
+function regularizedGammaQ(a, x) {
+  const maxIterations = 200;
+  const eps = 1e-14;
+  const fpmin = 1e-30;
+
+  let b = x + 1 - a;
+  let c = 1 / fpmin;
+  let d = 1 / b;
+  let h = d;
+
+  for (let i = 1; i <= maxIterations; i++) {
+    const an = -i * (i - a);
+    b += 2;
+    d = an * d + b;
+    if (Math.abs(d) < fpmin) d = fpmin;
+    c = b + an / c;
+    if (Math.abs(c) < fpmin) c = fpmin;
+    d = 1 / d;
+    const del = d * c;
+    h *= del;
+    if (Math.abs(del - 1) < eps) break;
   }
 
-  return sum * Math.exp(-x + a * Math.log(x) - logGamma(a));
+  return Math.exp(-x + a * Math.log(x) - logGamma(a)) * h;
 }
 
 /**
