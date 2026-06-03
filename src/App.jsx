@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ImageStego from './components/ImageStego';
 import TextStego from './components/TextStego';
 import MetadataViewer from './components/MetadataViewer';
 import Steganalysis from './components/Steganalysis';
 import ErrorBoundary from './components/ErrorBoundary';
-import ParticleCanvas from './components/ParticleCanvas';
 import AudioStego from './components/AudioStego';
-import { Shield, ImageIcon, Type, Search, Microscope, Volume2, Menu, X, ArrowRight, Layers } from './components/Icons';
+import ShiftBackground from './components/ShiftBackground';
+import HomePage from './components/HomePage';
+import { Shield, ImageIcon, Type, Search, Microscope, Volume2, Menu, X } from './components/Icons';
 import './index.css';
 
 const TABS = [
@@ -18,16 +19,43 @@ const TABS = [
   { id: 'analysis', label: 'Analysis', Icon: Microscope },
 ];
 
+// Section-based nav accent colors
+const NAV_THEMES = {
+  home:     { accent: '#06b6d4', glow: 'rgba(6, 182, 212, 0.3)' },
+  image:    { accent: '#06b6d4', glow: 'rgba(6, 182, 212, 0.3)' },
+  text:     { accent: '#10b981', glow: 'rgba(16, 185, 129, 0.3)' },
+  audio:    { accent: '#ec4899', glow: 'rgba(236, 72, 153, 0.3)' },
+  metadata: { accent: '#8b5cf6', glow: 'rgba(139, 92, 246, 0.3)' },
+  analysis: { accent: '#f59e0b', glow: 'rgba(245, 158, 11, 0.3)' },
+};
+
 function Navbar({ activeTab, setActiveTab }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const navRef = useRef(null);
+
+  // Scroll-aware bottom border
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Section-based nav theme — update CSS custom properties
+  useEffect(() => {
+    const theme = NAV_THEMES[activeTab] || NAV_THEMES.home;
+    const root = document.documentElement;
+    root.style.setProperty('--nav-accent', theme.accent);
+    root.style.setProperty('--nav-accent-glow', theme.glow);
+  }, [activeTab]);
 
   return (
-    <nav className="navbar">
+    <nav ref={navRef} className={`navbar ${scrolled ? 'scrolled' : ''}`}>
       <div className="navbar-inner">
         <a className="navbar-logo" href="#" onClick={(e) => { e.preventDefault(); setActiveTab('home'); }}>
-          <div className="navbar-logo-icon">
-            <Shield size={18} />
-          </div>
           <div className="navbar-logo-text">
             <span>StegaCrypt</span>
           </div>
@@ -55,102 +83,6 @@ function Navbar({ activeTab, setActiveTab }) {
         </button>
       </div>
     </nav>
-  );
-}
-
-function Hero({ setActiveTab }) {
-  const features = [
-    {
-      Icon: ImageIcon,
-      title: 'Image Steganography',
-      desc: 'Embed data into image pixels using LSB encoding. Supports variable bit depth and optional encryption.',
-      tab: 'image',
-      accent: 'var(--accent-cyan)',
-    },
-    {
-      Icon: Type,
-      title: 'Text Steganography',
-      desc: 'Conceal messages within ordinary text using zero-width Unicode characters. Completely invisible.',
-      tab: 'text',
-      accent: 'var(--accent-green)',
-    },
-    {
-      Icon: Search,
-      title: 'Metadata Extraction',
-      desc: 'Parse EXIF data from images — camera details, GPS coordinates, timestamps, and software metadata.',
-      tab: 'metadata',
-      accent: 'var(--accent-purple)',
-    },
-    {
-      Icon: Microscope,
-      title: 'Steganalysis',
-      desc: 'Detect hidden payloads through bit plane extraction, chi-square statistical tests, and visual attacks.',
-      tab: 'analysis',
-      accent: 'var(--accent-orange)',
-    },
-    {
-      Icon: Volume2,
-      title: 'Audio Steganography',
-      desc: 'Conceal messages in WAV audio samples using LSB encoding. Inaudible modification of audio data.',
-      tab: 'audio',
-      accent: 'var(--accent-pink, #ec4899)',
-    },
-  ];
-
-  return (
-    <section className="hero">
-      {/* Cyberpunk particle/dot-network background animation */}
-      <ParticleCanvas />
-
-      {/* All hero content sits above the canvas (z-index: 1) */}
-      <div style={{ position: 'relative', zIndex: 1 }}>
-        <div className="hero-badge">
-          <span className="hero-badge-dot" />
-          Client-side processing — no data leaves your browser
-        </div>
-      <h1>
-        Steganography<br />
-        <span className="gradient-text">Toolkit</span>
-      </h1>
-      <p className="hero-subtitle">
-        Encode, decode, and analyze hidden data in images and text.
-        Built for security researchers, CTF players, and anyone interested in information hiding.
-      </p>
-
-      <div className="feature-cards stagger-children">
-        {features.map((f) => (
-          <div
-            key={f.tab}
-            className="feature-card"
-            onClick={() => setActiveTab(f.tab)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && setActiveTab(f.tab)}
-          >
-            <div className="feature-card-icon" style={{ color: f.accent, background: `color-mix(in srgb, ${f.accent} 12%, transparent)` }}>
-              <f.Icon size={22} />
-            </div>
-            <h3>{f.title}</h3>
-            <p>{f.desc}</p>
-            <span className="feature-card-link">
-              Open tool <ArrowRight size={14} />
-            </span>
-          </div>
-        ))}
-      </div>
-
-      <div className="hero-tech-bar">
-        <Layers size={14} />
-        <span>React</span>
-        <span className="dot" />
-        <span>Canvas API</span>
-        <span className="dot" />
-        <span>Web Crypto</span>
-        <span className="dot" />
-        <span>Zero Dependencies</span>
-      </div>
-      </div>
-    </section>
   );
 }
 
@@ -187,12 +119,14 @@ export default function App() {
     } else {
       window.location.hash = tabId;
     }
+    // Scroll to top on tab change
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const renderContent = () => {
     switch (activeTab) {
       case 'home':
-        return <Hero setActiveTab={setActiveTab} />;
+        return <HomePage setActiveTab={setActiveTab} />;
       case 'image':
         return <ErrorBoundary key="image"><ImageStego /></ErrorBoundary>;
       case 'text':
@@ -204,15 +138,15 @@ export default function App() {
       case 'analysis':
         return <ErrorBoundary key="analysis"><Steganalysis /></ErrorBoundary>;
       default:
-        return <Hero setActiveTab={setActiveTab} />;
+        return <HomePage setActiveTab={setActiveTab} />;
     }
   };
 
   return (
     <>
-      <div className="app-background" />
+      <ShiftBackground />
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
-      <main style={{ flex: 1 }}>
+      <main data-nav-theme={activeTab} style={{ flex: 1 }}>
         {renderContent()}
       </main>
       <Footer />
