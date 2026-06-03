@@ -186,3 +186,43 @@ export function decode(imageData, bitsPerChannel = 1, password = '') {
 
   return decoded;
 }
+
+/**
+ * Decode a hidden message using raw LSB (null-terminated) — compatible with
+ * Python PIL / Pillow and other standard tools that don't use a magic header.
+ * Reads 1 bit per RGB channel, stops when a null byte (\0) is found.
+ *
+ * @param {ImageData} imageData - The image data with hidden message
+ * @param {number} bitsPerChannel - Bits per channel (1, 2, or 4)
+ * @returns {string} The decoded message
+ */
+export function decodeRaw(imageData, bitsPerChannel = 1) {
+  const data = imageData.data;
+  const lsbMask = (1 << bitsPerChannel) - 1;
+
+  const allBits = [];
+  for (let i = 0; i < data.length; i++) {
+    if ((i + 1) % 4 === 0) continue; // Skip alpha
+    const value = data[i] & lsbMask;
+    for (let b = bitsPerChannel - 1; b >= 0; b--) {
+      allBits.push((value >> b) & 1);
+    }
+  }
+
+  // Assemble bytes and stop at null terminator
+  const chars = [];
+  for (let i = 0; i + 7 < allBits.length; i += 8) {
+    let charCode = 0;
+    for (let b = 0; b < 8; b++) {
+      charCode = (charCode << 1) | allBits[i + b];
+    }
+    if (charCode === 0) break; // Null terminator
+    chars.push(String.fromCharCode(charCode));
+  }
+
+  if (chars.length === 0) {
+    throw new Error('No hidden message found (no readable text before null terminator).');
+  }
+
+  return chars.join('');
+}

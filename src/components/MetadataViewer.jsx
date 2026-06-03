@@ -1,82 +1,21 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { extractExif, formatMetadata } from '../utils/exif';
-import { Upload, CheckCircle, XCircle, AlertTriangle, MapPin, Info } from './Icons';
+import { extractMetadata, stripMetadata, detectFormat } from '../utils/metadata';
+import { Upload, CheckCircle, XCircle, AlertTriangle, MapPin, Info, Trash2, Download, Files } from './Icons';
 
 export default function MetadataViewer() {
-  const [metadata, setMetadata] = useState(null);
-  const [formattedData, setFormattedData] = useState([]);
+  const [results, setResults] = useState([]); // Array of { fileName, fileSize, format, fields, gps, buffer }
+  const [activeIndex, setActiveIndex] = useState(0);
   const [imagePreview, setImagePreview] = useState(null);
-  const [fileName, setFileName] = useState('');
-  const [fileSize, setFileSize] = useState(0);
-  const [imageDimensions, setImageDimensions] = useState(null);
   const [status, setStatus] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isStripping, setIsStripping] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Cleanup object URL to prevent memory leaks
   useEffect(() => {
     return () => {
       if (imagePreview) URL.revokeObjectURL(imagePreview);
     };
   }, [imagePreview]);
-
-  const loadFile = useCallback((file) => {
-    if (!file) return;
-
-    if (file.size > 20 * 1024 * 1024) {
-      setStatus({ type: 'error', text: 'File exceeds 20MB limit.' });
-      return;
-    }
-
-    if (imagePreview) {
-      URL.revokeObjectURL(imagePreview);
-    }
-
-    setFileName(file.name);
-    setFileSize(file.size);
-
-    if (file.type.startsWith('image/')) {
-      const url = URL.createObjectURL(file);
-      setImagePreview(url);
-
-      const img = new Image();
-      img.onload = () => setImageDimensions({ width: img.width, height: img.height });
-      img.src = url;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const exif = extractExif(e.target.result);
-        setMetadata(exif);
-        const formatted = formatMetadata(exif);
-
-        const allData = [
-          { label: 'File Name', value: file.name },
-          { label: 'File Size', value: formatFileSize(file.size) },
-          { label: 'MIME Type', value: file.type },
-          ...formatted,
-        ];
-
-        setFormattedData(allData);
-
-        if (formatted.length > 0) {
-          setStatus({ type: 'success', text: `Extracted ${formatted.length} metadata fields.` });
-        } else {
-          setStatus({ type: 'warning', text: 'No EXIF metadata found. The image may have been stripped.' });
-        }
-      } catch (err) {
-        setStatus({ type: 'error', text: `Error parsing metadata: ${err.message}` });
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  }, []);
-
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    setIsDragging(false);
-    loadFile(e.dataTransfer.files[0]);
-  }, [loadFile]);
 
   const formatFileSize = (bytes) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -84,11 +23,133 @@ export default function MetadataViewer() {
     return `${(bytes / 1048576).toFixed(2)} MB`;
   };
 
+  const processFiles = useCallback(async (files) => {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+
+    const newResults = [];
+    let errorCount = 0;
+
+    for (const file of fileArray) {
+      if (file.size > 20 * 1024 * 1024) {
+        errorCount++;
+        continue;
+      }
+
+      try {
+        const buffer = await file.arrayBuffer();
+        const meta = extractMetadata(buffer, file.name);
+
+        newResults.push({
+          fileName: file.name,
+          fileSize: file.size,
+          format: meta.format,
+          fields: meta.fields,
+          gps: meta.gps,
+          buffer,
+          mimeType: file.type,
+        });
+      } catch (err) {
+        newResults.push({
+          fileName: file.name,
+          fileSize: file.size,
+          format: 'Error',
+          fields: [{ label: 'Error', value: err.message }],
+          gps: null,
+          buffer: null,
+          mimeType: file.type,
+        });
+      }
+    }
+
+    setResults(newResults);
+    setActiveIndex(0);
+
+    // Generate preview for first image
+    if (newResults.length > 0 && newResults[0].mimeType?.startsWith('image/')) {
+      const blob = new Blob([newResults[0].buffer], { type: newResults[0].mimeType });
+      setImagePreview(URL.createObjectURL(blob));
+    } else {
+      setImagePreview(null);
+    }
+
+    const metaCount = newResults.reduce((sum, r) => sum + r.fields.length - 3, 0); // subtract file info fields
+    if (errorCount > 0) {
+      setStatus({ type: 'warning', text: `Processed ${newResults.length} file(s). ${errorCount} skipped (over 20MB).` });
+    } else if (metaCount > 0) {
+      setStatus({ type: 'success', text: `Extracted metadata from ${newResults.length} file(s). ${metaCount} total fields found.` });
+    } else {
+      setStatus({ type: 'warning', text: 'No metadata found. Files may have been stripped.' });
+    }
+  }, [imagePreview]);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    processFiles(e.dataTransfer.files);
+  }, [processFiles]);
+
+  const handleStrip = async () => {
+    const active = results[activeIndex];
+    if (!active?.buffer) return;
+
+    setIsStripping(true);
+    try {
+      const format = detectFormat(active.buffer);
+      const cleaned = stripMetadata(active.buffer, format);
+
+      const ext = active.fileName.split('.').pop();
+      const cleanName = active.fileName.replace(`.${ext}`, `_clean.${ext}`);
+
+      const blob = new Blob([cleaned]);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = cleanName;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      setStatus({ type: 'success', text: `Saved cleaned copy: ${cleanName} (${formatFileSize(cleaned.byteLength)})` });
+    } catch (err) {
+      setStatus({ type: 'error', text: err.message });
+    } finally {
+      setIsStripping(false);
+    }
+  };
+
+  const handleTabClick = (index) => {
+    setActiveIndex(index);
+    if (results[index]?.mimeType?.startsWith('image/') && results[index]?.buffer) {
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+      const blob = new Blob([results[index].buffer], { type: results[index].mimeType });
+      setImagePreview(URL.createObjectURL(blob));
+    } else {
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+      setImagePreview(null);
+    }
+  };
+
+  const activeResult = results[activeIndex];
+  const canStrip = activeResult?.format === 'JPEG' || activeResult?.format === 'PNG';
+
+  const FORMAT_COLORS = {
+    JPEG: '#f59e0b',
+    PNG: '#06b6d4',
+    GIF: '#8b5cf6',
+    BMP: '#ef4444',
+    WebP: '#10b981',
+    TIFF: '#ec4899',
+    Unknown: '#64748b',
+    Error: '#ef4444',
+  };
+
   return (
     <div className="tool-section fade-in-up">
       <div className="tool-header">
         <h2>Metadata Extraction</h2>
-        <p>Parse EXIF metadata from images — camera info, GPS coordinates, timestamps, software, and more.</p>
+        <p>Parse metadata from images — supports JPEG EXIF, PNG chunks, GIF, WebP, BMP, and TIFF. Strip metadata for privacy.</p>
       </div>
 
       <div className="glass-card">
@@ -104,16 +165,17 @@ export default function MetadataViewer() {
           ) : (
             <>
               <div className="drop-zone-icon"><Upload size={32} /></div>
-              <p className="drop-zone-text">Drop an image here or click to upload</p>
-              <p className="drop-zone-hint">Best results with unedited JPEG photos from cameras or phones</p>
+              <p className="drop-zone-text">Drop image(s) here or click to upload</p>
+              <p className="drop-zone-hint">JPEG, PNG, GIF, WebP, BMP, TIFF — multiple files supported</p>
             </>
           )}
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,.bmp,.tiff,.tif"
+            multiple
             style={{ display: 'none' }}
-            onChange={(e) => loadFile(e.target.files[0])}
+            onChange={(e) => processFiles(e.target.files)}
           />
         </div>
 
@@ -124,63 +186,111 @@ export default function MetadataViewer() {
           </div>
         )}
 
-        {formattedData.length > 0 && (
-          <div style={{ marginTop: 'var(--space-lg)', overflowX: 'auto' }}>
-            <table className="metadata-table">
-              <thead>
-                <tr>
-                  <th>Property</th>
-                  <th>Value</th>
-                </tr>
-              </thead>
-              <tbody>
-                {formattedData.map((item, i) => (
-                  <tr key={i}>
-                    <td style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}>{item.label}</td>
-                    <td>{item.value}</td>
-                  </tr>
-                ))}
-                {imageDimensions && !formattedData.some(d => d.label === 'Dimensions') && (
-                  <tr>
-                    <td style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}>Dimensions</td>
-                    <td>{imageDimensions.width} &times; {imageDimensions.height}</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+        {/* Batch tabs */}
+        {results.length > 1 && (
+          <div style={{ display: 'flex', gap: '4px', marginTop: 'var(--space-md)', overflowX: 'auto', paddingBottom: '4px' }}>
+            {results.map((r, i) => (
+              <button
+                key={i}
+                className={`btn ${i === activeIndex ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => handleTabClick(i)}
+                style={{ fontSize: '0.72rem', padding: '4px 10px', whiteSpace: 'nowrap', flexShrink: 0 }}
+              >
+                <span
+                  style={{
+                    display: 'inline-block',
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: FORMAT_COLORS[r.format] || FORMAT_COLORS.Unknown,
+                    marginRight: '6px',
+                  }}
+                />
+                {r.fileName.length > 20 ? r.fileName.substring(0, 17) + '...' : r.fileName}
+              </button>
+            ))}
           </div>
         )}
 
-        {metadata?.gps && (
-          <div style={{ marginTop: 'var(--space-lg)' }}>
-            <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <MapPin size={14} /> GPS Location
-            </label>
-            <div style={{
-              borderRadius: 'var(--radius-md)',
-              overflow: 'hidden',
-              border: '1px solid var(--border-color)',
-              height: '300px',
-            }}>
-              <iframe
-                title="GPS Location"
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                src={`https://www.openstreetmap.org/export/embed.html?bbox=${metadata.gps.longitude - 0.01}%2C${metadata.gps.latitude - 0.01}%2C${metadata.gps.longitude + 0.01}%2C${metadata.gps.latitude + 0.01}&layer=mapnik&marker=${metadata.gps.latitude}%2C${metadata.gps.longitude}`}
-              />
+        {/* Active result */}
+        {activeResult && (
+          <>
+            {/* Format badge */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', marginTop: 'var(--space-md)' }}>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '4px 12px',
+                borderRadius: 'var(--radius-full)',
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                fontFamily: 'var(--font-mono)',
+                background: `${FORMAT_COLORS[activeResult.format] || FORMAT_COLORS.Unknown}20`,
+                color: FORMAT_COLORS[activeResult.format] || FORMAT_COLORS.Unknown,
+                border: `1px solid ${FORMAT_COLORS[activeResult.format] || FORMAT_COLORS.Unknown}30`,
+              }}>
+                {activeResult.format}
+              </span>
+              {canStrip && (
+                <button className="btn btn-secondary" onClick={handleStrip} disabled={isStripping} style={{ fontSize: '0.72rem', padding: '4px 12px' }}>
+                  <Trash2 size={12} /> {isStripping ? 'Stripping...' : 'Strip metadata & download'}
+                </button>
+              )}
             </div>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 'var(--space-xs)', fontFamily: 'var(--font-mono)' }}>
-              {metadata.gps.latitude.toFixed(6)}, {metadata.gps.longitude.toFixed(6)}
-            </p>
-          </div>
+
+            {/* Metadata table */}
+            <div style={{ marginTop: 'var(--space-md)', overflowX: 'auto' }}>
+              <table className="metadata-table">
+                <thead>
+                  <tr>
+                    <th>Property</th>
+                    <th>Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeResult.fields.map((item, i) => (
+                    <tr key={i}>
+                      <td style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}>{item.label}</td>
+                      <td>{String(item.value)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* GPS Map */}
+            {activeResult.gps && (
+              <div style={{ marginTop: 'var(--space-lg)' }}>
+                <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <MapPin size={14} /> GPS Location
+                </label>
+                <div style={{
+                  borderRadius: 'var(--radius-md)',
+                  overflow: 'hidden',
+                  border: '1px solid var(--border-color)',
+                  height: '300px',
+                }}>
+                  <iframe
+                    title="GPS Location"
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${activeResult.gps.longitude - 0.01}%2C${activeResult.gps.latitude - 0.01}%2C${activeResult.gps.longitude + 0.01}%2C${activeResult.gps.latitude + 0.01}&layer=mapnik&marker=${activeResult.gps.latitude}%2C${activeResult.gps.longitude}`}
+                  />
+                </div>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 'var(--space-xs)', fontFamily: 'var(--font-mono)' }}>
+                  {activeResult.gps.latitude.toFixed(6)}, {activeResult.gps.longitude.toFixed(6)}
+                </p>
+              </div>
+            )}
+          </>
         )}
 
         <div className="explainer-box">
           <Info size={14} style={{ flexShrink: 0, marginTop: '2px' }} />
           <span>
-            EXIF data is embedded by cameras and phones when capturing photos. It can contain sensitive information
-            like GPS location and device details. Social media platforms typically strip this data, but directly shared files may retain it.
+            Supports JPEG (EXIF/IPTC), PNG (tEXt/iTXt/pHYs/tIME), GIF (header/comments), WebP (VP8X/EXIF), BMP (headers), and TIFF (IFD).
+            Metadata stripping removes EXIF and IPTC data from JPEG/PNG while preserving the image. All processing is local.
           </span>
         </div>
       </div>

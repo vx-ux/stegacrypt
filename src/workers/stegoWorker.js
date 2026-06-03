@@ -1,4 +1,4 @@
-import { encode, decode } from '../utils/lsb';
+import { encode, decode, decodeRaw } from '../utils/lsb';
 import { encodeAudio, decodeAudio } from '../utils/audioStego';
 import { extractBitPlanes, chiSquareAnalysis, visualAttack } from '../utils/analysis';
 
@@ -24,6 +24,11 @@ self.onmessage = async (e) => {
       case 'lsb:decode':
         // payload: { imageData, password, bitsPerChannel }
         result = decode(payload.imageData, payload.bitsPerChannel, payload.password);
+        break;
+
+      case 'lsb:decodeRaw':
+        // payload: { imageData, bitsPerChannel }
+        result = decodeRaw(payload.imageData, payload.bitsPerChannel);
         break;
 
       // ─── Audio Steganography ───

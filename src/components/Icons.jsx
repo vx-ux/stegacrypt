@@ -318,3 +318,49 @@ export function Loader(props) {
   );
 }
 
+export function Hash(props) {
+  return (
+    <Icon {...props}>
+      <path d="M4 9h16" />
+      <path d="M4 15h16" />
+      <path d="M10 3 8 21" />
+      <path d="M16 3 14 21" />
+    </Icon>
+  );
+}
+
+export function Binary(props) {
+  return (
+    <Icon {...props}>
+      <rect x="14" y="14" width="4" height="6" rx="2" />
+      <rect x="6" y="4" width="4" height="6" rx="2" />
+      <path d="M6 20h4" />
+      <path d="M14 10h4" />
+      <path d="M6 14h4v6" />
+      <path d="M14 4h4v6" />
+    </Icon>
+  );
+}
+
+export function Trash2(props) {
+  return (
+    <Icon {...props}>
+      <path d="M3 6h18" />
+      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+      <line x1="10" x2="10" y1="11" y2="17" />
+      <line x1="14" x2="14" y1="11" y2="17" />
+    </Icon>
+  );
+}
+
+export function Files(props) {
+  return (
+    <Icon {...props}>
+      <path d="M15.5 2H8.6c-.4 0-.8.2-1.1.5-.3.3-.5.7-.5 1.1v12.8c0 .4.2.8.5 1.1.3.3.7.5 1.1.5h9.8c.4 0 .8-.2 1.1-.5.3-.3.5-.7.5-1.1V6.5L15.5 2z" />
+      <path d="M3 7.6v12.8c0 .4.2.8.5 1.1.3.3.7.5 1.1.5h9.8" />
+      <path d="M15 2v5h5" />
+    </Icon>
+  );
+}
+

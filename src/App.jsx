@@ -5,9 +5,11 @@ import MetadataViewer from './components/MetadataViewer';
 import Steganalysis from './components/Steganalysis';
 import ErrorBoundary from './components/ErrorBoundary';
 import AudioStego from './components/AudioStego';
+import HashVerifier from './components/HashVerifier';
+import HexViewer from './components/HexViewer';
 import ShiftBackground from './components/ShiftBackground';
 import HomePage from './components/HomePage';
-import { Shield, ImageIcon, Type, Search, Microscope, Volume2, Menu, X } from './components/Icons';
+import { Shield, ImageIcon, Type, Search, Microscope, Volume2, Menu, X, Hash, Binary } from './components/Icons';
 import './index.css';
 
 const TABS = [
@@ -17,6 +19,8 @@ const TABS = [
   { id: 'audio', label: 'Audio', Icon: Volume2 },
   { id: 'metadata', label: 'Metadata', Icon: Search },
   { id: 'analysis', label: 'Analysis', Icon: Microscope },
+  { id: 'hash', label: 'Hash', Icon: Hash },
+  { id: 'hex', label: 'Hex', Icon: Binary },
 ];
 
 // Section-based nav accent colors
@@ -27,6 +31,8 @@ const NAV_THEMES = {
   audio:    { accent: '#ec4899', glow: 'rgba(236, 72, 153, 0.3)' },
   metadata: { accent: '#8b5cf6', glow: 'rgba(139, 92, 246, 0.3)' },
   analysis: { accent: '#f59e0b', glow: 'rgba(245, 158, 11, 0.3)' },
+  hash:     { accent: '#10b981', glow: 'rgba(16, 185, 129, 0.3)' },
+  hex:      { accent: '#f97316', glow: 'rgba(249, 115, 22, 0.3)' },
 };
 
 function Navbar({ activeTab, setActiveTab }) {
@@ -137,6 +143,10 @@ export default function App() {
         return <ErrorBoundary key="metadata"><MetadataViewer /></ErrorBoundary>;
       case 'analysis':
         return <ErrorBoundary key="analysis"><Steganalysis /></ErrorBoundary>;
+      case 'hash':
+        return <ErrorBoundary key="hash"><HashVerifier /></ErrorBoundary>;
+      case 'hex':
+        return <ErrorBoundary key="hex"><HexViewer /></ErrorBoundary>;
       default:
         return <HomePage setActiveTab={setActiveTab} />;
     }

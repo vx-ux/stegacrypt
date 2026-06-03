@@ -16,6 +16,7 @@ export default function ImageStego() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [decodeMode, setDecodeMode] = useState('stegacrypt'); // 'stegacrypt' | 'raw'
 
   const fileInputRef = useRef(null);
 
@@ -132,16 +133,24 @@ export default function ImageStego() {
         imageData.height
       );
 
-      const decoded = await runWorkerTask('lsb:decode', {
-        imageData: clonedData,
-        password,
-        bitsPerChannel
-      });
+      let decoded;
+      if (decodeMode === 'raw') {
+        decoded = await runWorkerTask('lsb:decodeRaw', {
+          imageData: clonedData,
+          bitsPerChannel
+        });
+      } else {
+        decoded = await runWorkerTask('lsb:decode', {
+          imageData: clonedData,
+          password,
+          bitsPerChannel
+        });
+      }
 
       setResult(decoded);
       setStatus({
         type: 'success',
-        text: `Decoded ${decoded.length} characters from image.`,
+        text: `Decoded ${decoded.length} characters from image (${decodeMode === 'raw' ? 'Raw LSB' : 'StegaCrypt'} format).`,
       });
     } catch (err) {
       setStatus({ type: 'error', text: err.message });
@@ -213,7 +222,6 @@ export default function ImageStego() {
           />
         </div>
 
-        {/* Controls */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', marginTop: 'var(--space-lg)' }}>
           <div className="input-group" style={{ margin: 0 }}>
             <label className="input-label">Bits per channel</label>
@@ -231,17 +239,39 @@ export default function ImageStego() {
               <option value={4}>4 bits — maximum capacity</option>
             </select>
           </div>
-          <div className="input-group" style={{ margin: 0 }}>
-            <label className="input-label">Password (optional)</label>
-            <input
-              type="password"
-              className="input-field"
-              placeholder="XOR encryption key"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
+          {!(mode === 'decode' && decodeMode === 'raw') && (
+            <div className="input-group" style={{ margin: 0 }}>
+              <label className="input-label">Password (optional)</label>
+              <input
+                type="password"
+                className="input-field"
+                placeholder="XOR encryption key"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+          )}
         </div>
+
+        {mode === 'decode' && (
+          <div className="input-group" style={{ marginTop: 'var(--space-md)' }}>
+            <label className="input-label">Decode format</label>
+            <div className="toggle-group">
+              <button
+                className={`toggle-option ${decodeMode === 'stegacrypt' ? 'active' : ''}`}
+                onClick={() => setDecodeMode('stegacrypt')}
+              >
+                StegaCrypt (STCR header)
+              </button>
+              <button
+                className={`toggle-option ${decodeMode === 'raw' ? 'active' : ''}`}
+                onClick={() => setDecodeMode('raw')}
+              >
+                Raw LSB (null-terminated)
+              </button>
+            </div>
+          </div>
+        )}
 
         {mode === 'encode' && (
           <>

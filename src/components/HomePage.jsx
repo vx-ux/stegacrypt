@@ -1,7 +1,7 @@
 import { useEffect, useRef, useLayoutEffect } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { ImageIcon, Type, Search, Microscope, Volume2, ArrowRight } from './Icons';
+import { ImageIcon, Type, Search, Microscope, Volume2, Hash, Binary, ArrowRight } from './Icons';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -119,6 +119,48 @@ const SECTIONS = [
         { text: 'SNR Impact:   ', highlight: '-91.2 dB', suffix: '' },
         { text: '' },
         { text: '\u2588\u2593\u2592\u2591\u2592\u2593\u2588\u2593\u2592\u2591\u2591\u2592\u2593\u2588\u2588\u2593\u2592\u2591\u2592\u2593\u2588\u2593\u2592' },
+      ],
+    },
+  },
+  {
+    id: 'hash',
+    number: '06',
+    Icon: Hash,
+    accentColor: '#10b981',
+    title: 'Verify file integrity',
+    body: 'Compute cryptographic hashes (MD5, SHA-1, SHA-256, SHA-512) for any file entirely in your browser. Compare two files to check if they are identical, or verify a download against a known hash. Used in forensics to prove evidence integrity, in software distribution to verify downloads, and in incident response to identify known malware samples.',
+    bullets: null,
+    cta: 'Open Hash Tool',
+    visual: {
+      title: 'hash_verify.log',
+      lines: [
+        { text: 'File:    ', highlight: 'evidence_img.dd', suffix: '' },
+        { text: 'MD5:     ', highlight: 'd41d8cd98f00b204e980', suffix: '' },
+        { text: 'SHA-256: ', highlight: 'e3b0c44298fc1c149afb', suffix: '' },
+        { text: '' },
+        { text: 'Verify:  ', highlight: '\u2705 MATCH', suffix: '' },
+      ],
+    },
+    reversed: true,
+  },
+  {
+    id: 'hex',
+    number: '07',
+    Icon: Binary,
+    accentColor: '#f97316',
+    title: 'Inspect raw bytes',
+    body: 'View the hex dump of any file with a classic offset-hex-ASCII layout. Search for byte patterns, jump to specific offsets, and auto-detect file signatures. Used in reverse engineering, malware analysis, CTF binary challenges, and understanding file format internals at the byte level.',
+    bullets: null,
+    cta: 'Open Hex Tool',
+    visual: {
+      title: 'hexdump \u2014 image.png',
+      lines: [
+        { text: '00000000  ', highlight: '89 50 4E 47', suffix: ' 0D 0A 1A 0A' },
+        { text: '00000008  00 00 00 0D 49 48 44 52' },
+        { text: '00000010  00 00 04 00 00 00 03 00' },
+        { text: '' },
+        { text: 'Detected: ', highlight: 'PNG Image', suffix: '' },
+        { text: 'Signature: ', highlight: '89 50 4E 47', suffix: '' },
       ],
     },
   },
