@@ -17,13 +17,13 @@ self.onmessage = async (e) => {
       // ─── Image Steganography ───
       case 'lsb:encode':
         // payload: { imageData, message, password, bitsPerChannel }
-        result = encode(payload.imageData, payload.message, payload.bitsPerChannel, payload.password);
+        result = await encode(payload.imageData, payload.message, payload.bitsPerChannel, payload.password);
         transfer = [result.data.buffer];
         break;
 
       case 'lsb:decode':
         // payload: { imageData, password, bitsPerChannel }
-        result = decode(payload.imageData, payload.bitsPerChannel, payload.password);
+        result = await decode(payload.imageData, payload.bitsPerChannel, payload.password);
         break;
 
       case 'lsb:decodeRaw':
@@ -34,13 +34,13 @@ self.onmessage = async (e) => {
       // ─── Audio Steganography ───
       case 'audio:encode':
         // payload: { buffer, message, password }
-        result = encodeAudio(payload.buffer, payload.message, payload.password);
+        result = await encodeAudio(payload.buffer, payload.message, payload.password);
         transfer = [result];
         break;
 
       case 'audio:decode':
         // payload: { buffer, password }
-        result = decodeAudio(payload.buffer, payload.password);
+        result = await decodeAudio(payload.buffer, payload.password);
         break;
 
       // ─── Steganalysis ───
