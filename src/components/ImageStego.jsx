@@ -272,7 +272,7 @@ export default function ImageStego() {
                 className={`toggle-option ${decodeMode === 'stegacrypt' ? 'active' : ''}`}
                 onClick={() => setDecodeMode('stegacrypt')}
               >
-                StegaCrypt (STCR header)
+                StegaCrypt (v1/v2)
               </button>
               <button
                 className={`toggle-option ${decodeMode === 'raw' ? 'active' : ''}`}
