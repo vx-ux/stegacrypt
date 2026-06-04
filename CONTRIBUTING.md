@@ -1,6 +1,6 @@
 # Contributing to StegaCrypt
 
-Thank you for your interest in contributing! StegaCrypt is a browser-based steganography toolkit built with React + Vite — zero backend, all client-side.
+Thank you for your interest in contributing! StegaCrypt is a browser-based steganography toolkit built with React + Vite - zero backend, all client-side.
 
 ## Development Setup
 
@@ -41,11 +41,11 @@ src/
 
 ## Coding Guidelines
 
-- **No external runtime dependencies** — all algorithms must work with native browser APIs only (Canvas, WebAudio, FileReader, etc.)
-- **Pure utility functions** — keep `src/utils/` free of React. Each file exports named functions only.
-- **CSS custom properties** — always use the design tokens from `:root` in `index.css` rather than hardcoded values.
-- **No TypeScript** — the project uses plain JSX. Keep it consistent.
-- **Document your functions** — use JSDoc comments on all exported functions in `src/utils/`.
+- **No external runtime dependencies** - all algorithms must work with native browser APIs only (Canvas, WebAudio, FileReader, etc.)
+- **Pure utility functions** - keep `src/utils/` free of React. Each file exports named functions only.
+- **CSS custom properties** - always use the design tokens from `:root` in `index.css` rather than hardcoded values.
+- **No TypeScript** - the project uses plain JSX. Keep it consistent.
+- **Document your functions** - use JSDoc comments on all exported functions in `src/utils/`.
 
 ## How to Submit Changes
 
