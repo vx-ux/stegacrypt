@@ -2,31 +2,109 @@
 
 > A browser-based steganography toolkit. No server. No telemetry. No exceptions.
 
+![Build](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)
 ![React](https://img.shields.io/badge/react-18.0-61DAFB?style=flat-square&logo=react)
+![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
 
-StegaCrypt is a client-side steganography toolkit that runs entirely within the browser. It supports embedding and extracting hidden payloads in image and audio files, optional AES-256-GCM encryption of those payloads, and statistical steganalysis for detecting hidden data. Every operation - file processing, encoding, decryption - executes locally via native browser APIs. Nothing is transmitted externally.
+StegaCrypt is a client-side steganography toolkit that runs entirely within the browser. It supports embedding and extracting hidden payloads in image and audio files, optional AES-256-GCM encryption of those payloads, and statistical steganalysis for detecting hidden data. Every operation executes locally via native browser APIs. Nothing is transmitted externally.
 
 ---
 
 ## Features
 
-- **LSB Image Steganography** - Embed and extract payloads in PNG and BMP files by manipulating the least significant bits of RGB pixel channels.
-- **LSB Audio Steganography** - Conceal and retrieve data within WAV audio files by modifying the least significant bit of individual audio samples.
-- **Chi-Square Steganalysis** - Detect the presence of hidden data by testing pixel value distributions against expected natural frequency curves.
-- **AES-256-GCM Encryption** - Encrypt payloads before embedding using a PBKDF2-derived key with a random 16-byte salt and 310,000 iterations, providing authenticated confidentiality.
-- **Complete Client-Side Execution** - All processing occurs locally via the Canvas API, Web Audio API, Web Crypto API, and File API.
+- **LSB Image Steganography**: Embed and extract payloads in PNG and BMP files by manipulating the least significant bits of RGB pixel channels.
+- **LSB Audio Steganography**: Conceal and retrieve data within WAV audio files by modifying the least significant bit of individual audio samples.
+- **Chi-Square Steganalysis**: Detect the presence of hidden data by testing pixel value distributions against expected natural frequency curves.
+- **AES-256-GCM Encryption**: Encrypt payloads before embedding using a PBKDF2-derived key with a random 16-byte salt and 310,000 iterations.
+- **Client-Side Execution**: All processing occurs locally via the Canvas API, Web Audio API, Web Crypto API, and File API.
 
 ---
 
 ## How It Works
 
-**Image Steganography** modifies the least significant bits of the red, green, and blue channels in an image. Because the alterations are confined to the lowest-order bits, the visual difference remains imperceptible to the human eye.
+### System Overview
 
-**Audio Steganography** applies the same LSB technique to audio sample bytes within a WAV file. Modifications to the least significant bit of each sample produce amplitude variations that fall below the threshold of human hearing.
+The React UI layer routes user actions to one of four independent modules. Each module relies exclusively on native browser APIs and does not communicate with any external service.
 
-**Chi-Square Steganalysis** tests the statistical properties of an image against expected natural distributions. Clean images exhibit typical frequency curves; images containing LSB-encoded data produce unnaturally flat distributions that the test surfaces.
+```mermaid
+graph TD
+    A[React UI] --> B[Image Steganography]
+    A --> C[Audio Steganography]
+    A --> D[Steganalysis]
+    B --> E[Canvas API]
+    C --> F[Web Audio API]
+    D --> E
+    B --> G[Web Crypto API]
+    C --> G
+```
 
-**AES-256-GCM Encryption** wraps the payload in authenticated encryption before it is embedded. The key is derived from a user-supplied password via PBKDF2, ensuring that even if a stego file is discovered, its contents remain confidential and tamper-evident.
+---
+
+### Image Steganography
+
+The encoder reads the image into a pixel array via the Canvas API, converts the payload to binary, and overwrites the least significant bit of each RGB channel value. The alteration is visually imperceptible. The decoder reverses the process by reading those same bits back out.
+
+**Encoding**
+
+```mermaid
+graph LR
+    A[Image + Message] --> B[Encrypt Payload]
+    B --> C[Inject into Pixels]
+    C --> D[Stego PNG]
+```
+
+**Decoding**
+
+```mermaid
+graph LR
+    A[Stego Image] --> B[Extract from Pixels]
+    B --> C[Decrypt Payload]
+    C --> D[Secret Message]
+```
+
+---
+
+### Audio Steganography
+
+The encoder decodes the WAV file into raw audio samples via the Web Audio API and modifies the least significant bit of each sample. The change in amplitude falls below the threshold of human hearing. Decoding reads those bits back and reconstructs the original message.
+
+**Encoding**
+
+```mermaid
+graph LR
+    A[WAV + Message] --> B[Encrypt Payload]
+    B --> C[Inject into Samples]
+    C --> D[Stego WAV]
+```
+
+**Decoding**
+
+```mermaid
+graph LR
+    A[Stego WAV] --> B[Extract from Samples]
+    B --> C[Decrypt Payload]
+    C --> D[Secret Message]
+```
+
+---
+
+### Chi-Square Steganalysis
+
+The module extracts pixel values from the uploaded image and compares their frequency distribution against what a natural, unmodified image would produce. LSB-encoded images exhibit an unnaturally flat distribution. A chi-square test quantifies the deviation and returns a verdict.
+
+```mermaid
+graph LR
+    A[Input Image] --> B[Analyze Pixel Frequencies]
+    B --> C{Chi-Square Test}
+    C -- Normal --> D[Image is Clean]
+    C -- Anomaly --> E[Payload Detected]
+```
+
+---
+
+### AES-256-GCM Encryption
+
+When a password is provided, the payload is encrypted before embedding and decrypted after extraction. The encryption key is derived from the password via PBKDF2 with a random 16-byte salt and 310,000 iterations. This step is optional but strongly recommended for sensitive payloads.
 
 ---
 
@@ -61,7 +139,7 @@ Navigate to `http://localhost:5173` in your browser.
 
 1. Open the Image or Audio steganography tool.
 2. Select the **Encode** mode.
-3. Upload a target file - PNG, BMP, or WAV.
+3. Upload a target file (PNG, BMP, or WAV).
 4. Enter the payload in the text field.
 5. Optionally, provide a password to encrypt the payload with AES-256-GCM.
 6. Click **Encode** and download the resulting stego file.
@@ -73,56 +151,6 @@ Navigate to `http://localhost:5173` in your browser.
 3. Upload the file containing the embedded payload.
 4. Provide the decryption password if the payload was encrypted.
 5. Click **Decode** to extract the hidden message.
-
----
-
-## Workflows
-
-### Image Encoding
-
-```mermaid
-graph LR
-    A[Input Image] --> B[Read Pixels]
-    B --> C[Inject Message Bits]
-    C --> D[Stego PNG]
-```
-
-### Image Decoding
-
-```mermaid
-graph LR
-    A[Stego Image] --> B[Read Pixels]
-    B --> C[Extract LSBs]
-    C --> D[Plaintext Message]
-```
-
-### Audio Encoding
-
-```mermaid
-graph LR
-    A[Input WAV] --> B[Read Samples]
-    B --> C[Inject Message Bits]
-    C --> D[Stego WAV]
-```
-
-### Audio Decoding
-
-```mermaid
-graph LR
-    A[Stego WAV] --> B[Read Samples]
-    B --> C[Extract LSBs]
-    C --> D[Plaintext Message]
-```
-
-### Steganalysis
-
-```mermaid
-graph LR
-    A[Input Image] --> B[Pixel Frequencies]
-    B --> C{Chi-Square Test}
-    C -- Pass --> D[Clean]
-    C -- Fail --> E[Payload Detected]
-```
 
 ---
 
@@ -147,3 +175,7 @@ StegaCrypt operates entirely within the client environment. No files, passwords,
 When a password is supplied, the payload is encrypted with AES-256-GCM before embedding. The encryption key is derived via PBKDF2 using a randomly generated 16-byte salt and 310,000 iterations. This scheme provides authenticated encryption, guaranteeing both the confidentiality and integrity of the hidden payload.
 
 ---
+
+## License
+
+[MIT](./LICENSE)
