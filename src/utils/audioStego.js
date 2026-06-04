@@ -1,17 +1,30 @@
 /**
- * Audio LSB Steganography — WAV file support
+ * Audio LSB Steganography — WAV file support (v2)
  *
  * Hides text messages in the Least Significant Bits of 16-bit PCM WAV audio samples.
  * The change to each sample is ±1 amplitude unit — completely inaudible.
  *
  * Format support: PCM WAV (16-bit, mono or stereo)
- * Uses the same magic header (STCR) and XOR cipher as lsb.js for consistency.
+ *
+ * v2 changes:
+ * - AES-256-GCM encryption replaces XOR cipher
+ * - New "STC2" magic header for v2 format
+ * - UTF-8 encoding via TextEncoder (fixes Unicode/emoji corruption)
+ * - Backward-compatible: decodeAudio() falls back to legacy "STCR" (v1 XOR) format
  */
 
-const MAGIC = 'STCR';
-const HEADER_BITS = 32; // 32-bit message length field
+import { aesEncrypt, aesDecrypt, bytesToBits, bitsToBytes, AES_OVERHEAD } from './crypto.js';
 
-// ─── XOR cipher (same as lsb.js) ────────────────────────────────────────────
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const MAGIC_V2 = 'STC2';
+const MAGIC_V1 = 'STCR';
+const MAGIC_LENGTH = 4;
+const LENGTH_BITS = 32;
+const FLAG_PLAIN     = 0x00;
+const FLAG_ENCRYPTED = 0x01;
+
+// ─── Legacy helpers (kept for v1 backward compatibility in decode) ────────────
 
 function xorCipher(text, password) {
   if (!password) return text;
@@ -21,8 +34,6 @@ function xorCipher(text, password) {
   }
   return String.fromCharCode(...result);
 }
-
-// ─── Bit helpers ─────────────────────────────────────────────────────────────
 
 function stringToBits(str) {
   const bits = [];
@@ -125,45 +136,71 @@ function parseWav(buffer) {
   return { dataView: dv, sampleOffset: dataOffset, numSamples, bitsPerSample, numChannels, sampleRate };
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
+// ─── Capacity ─────────────────────────────────────────────────────────────────
 
 /**
  * Calculate maximum characters that can be hidden in this WAV file.
  * @param {ArrayBuffer} buffer
+ * @param {boolean} encrypted - Whether AES encryption will be used
  * @returns {number} max characters
  */
-export function getAudioCapacity(buffer) {
+export function getAudioCapacity(buffer, encrypted = false) {
   const { numSamples } = parseWav(buffer);
-  const headerBits = MAGIC.length * 8 + HEADER_BITS;
+  const headerBits = MAGIC_LENGTH * 8 + LENGTH_BITS;
   const availableBits = numSamples - headerBits;
-  return Math.max(0, Math.floor(availableBits / 8));
+  let availableBytes = Math.max(0, Math.floor(availableBits / 8));
+
+  if (encrypted) {
+    availableBytes -= AES_OVERHEAD;
+  } else {
+    availableBytes -= 1; // flag byte
+  }
+
+  return Math.max(0, availableBytes);
 }
 
+// ─── Encode (v2) ──────────────────────────────────────────────────────────────
+
 /**
- * Encode a message into the LSBs of WAV audio samples.
+ * Encode a message into the LSBs of WAV audio samples (v2 format).
  * Returns a new ArrayBuffer representing the modified WAV file.
+ *
+ * Wire format: MAGIC("STC2", 4B) + PAYLOAD_LENGTH(4B) + FLAG(1B) + PAYLOAD
  *
  * @param {ArrayBuffer} buffer   - Original WAV file
  * @param {string}      message  - Text to hide
- * @param {string}      password - Optional XOR encryption key
- * @returns {ArrayBuffer} New WAV buffer with embedded message
+ * @param {string}      password - Optional password for AES-256-GCM encryption
+ * @returns {Promise<ArrayBuffer>} New WAV buffer with embedded message
  */
-export function encodeAudio(buffer, message, password = '') {
+export async function encodeAudio(buffer, message, password = '') {
   const { dataView, sampleOffset, numSamples } = parseWav(buffer);
 
-  const capacity = Math.floor((numSamples - MAGIC.length * 8 - HEADER_BITS) / 8);
-  if (message.length > capacity) {
-    throw new Error(`Message too long. Maximum ${capacity} characters for this WAV file.`);
+  // Build payload bytes: FLAG + content
+  const messageBytes = new TextEncoder().encode(message);
+  let payloadBytes;
+
+  if (password) {
+    const encrypted = await aesEncrypt(messageBytes, password);
+    payloadBytes = new Uint8Array(1 + encrypted.byteLength);
+    payloadBytes[0] = FLAG_ENCRYPTED;
+    payloadBytes.set(encrypted, 1);
+  } else {
+    payloadBytes = new Uint8Array(1 + messageBytes.byteLength);
+    payloadBytes[0] = FLAG_PLAIN;
+    payloadBytes.set(messageBytes, 1);
   }
 
-  // Payload (optionally encrypted)
-  const payload = password ? xorCipher(message, password) : message;
+  // Check capacity
+  const capacity = getAudioCapacity(buffer, !!password);
+  if (messageBytes.byteLength > capacity) {
+    throw new Error(`Message too long. Maximum ~${capacity} characters for this WAV file.`);
+  }
 
-  // Build bit stream: MAGIC + LENGTH(32) + MESSAGE
+  // Build bit stream: MAGIC("STC2") + LENGTH(32-bit, payload byte count) + PAYLOAD
   const allBits = [
-    ...stringToBits(MAGIC),
-    ...numberToBits(payload.length, HEADER_BITS),
-    ...stringToBits(payload),
+    ...stringToBits(MAGIC_V2),
+    ...numberToBits(payloadBytes.byteLength, LENGTH_BITS),
+    ...bytesToBits(payloadBytes),
   ];
 
   // Copy the original buffer
@@ -184,14 +221,17 @@ export function encodeAudio(buffer, message, password = '') {
   return outBuffer;
 }
 
+// ─── Decode (v2 with v1 fallback) ─────────────────────────────────────────────
+
 /**
  * Decode a hidden message from WAV audio sample LSBs.
+ * Supports both v2 (STC2 / AES-256-GCM) and v1 (STCR / XOR) formats.
  *
  * @param {ArrayBuffer} buffer   - WAV file potentially containing a hidden message
  * @param {string}      password - Password used during encoding (if any)
- * @returns {string} Decoded message
+ * @returns {Promise<string>} Decoded message
  */
-export function decodeAudio(buffer, password = '') {
+export async function decodeAudio(buffer, password = '') {
   const { dataView, sampleOffset, numSamples } = parseWav(buffer);
 
   // Extract all LSBs from samples
@@ -203,29 +243,70 @@ export function decodeAudio(buffer, password = '') {
     allBits.push(sample & 1);
   }
 
-  // Verify magic header
-  const magicBits = allBits.slice(0, MAGIC.length * 8);
+  // Read magic header
+  const magicBits = allBits.slice(0, MAGIC_LENGTH * 8);
   const magic = bitsToString(magicBits);
-  if (magic !== MAGIC) {
+
+  if (magic === MAGIC_V2) {
+    return decodeV2(allBits, password);
+  } else if (magic === MAGIC_V1) {
+    return decodeLegacyV1(allBits, password);
+  } else {
     throw new Error('No hidden message found in this audio file (invalid header).');
   }
+}
 
-  // Read message length
-  const lengthStart = MAGIC.length * 8;
-  const messageLength = bitsToNumber(allBits.slice(lengthStart, lengthStart + HEADER_BITS));
+/**
+ * Decode v2 format: STC2 + LENGTH(4B) + FLAG(1B) + PAYLOAD
+ */
+async function decodeV2(allBits, password) {
+  const headerStart = MAGIC_LENGTH * 8;
+
+  const payloadLength = bitsToNumber(allBits.slice(headerStart, headerStart + LENGTH_BITS));
+
+  if (payloadLength <= 0 || payloadLength > 10_000_000) {
+    throw new Error('Invalid message length. The file may not contain a hidden message.');
+  }
+
+  const payloadStart = headerStart + LENGTH_BITS;
+  const payloadBits = allBits.slice(payloadStart, payloadStart + payloadLength * 8);
+  const payloadBytes = bitsToBytes(payloadBits);
+
+  const flag = payloadBytes[0];
+  const content = payloadBytes.slice(1);
+
+  if (flag === FLAG_ENCRYPTED) {
+    if (!password) {
+      throw new Error('This audio file contains an encrypted message. Please provide the password.');
+    }
+    const plainBytes = await aesDecrypt(content, password);
+    return new TextDecoder().decode(plainBytes);
+  } else {
+    return new TextDecoder().decode(content);
+  }
+}
+
+/**
+ * Decode legacy v1 format: STCR + LENGTH(4B) + MESSAGE (charCode-based, optional XOR)
+ * Kept for backward compatibility with audio encoded before the AES upgrade.
+ */
+function decodeLegacyV1(allBits, password) {
+  const lengthStart = MAGIC_LENGTH * 8;
+  const messageLength = bitsToNumber(allBits.slice(lengthStart, lengthStart + LENGTH_BITS));
 
   if (messageLength <= 0 || messageLength > 10_000_000) {
     throw new Error('Invalid message length. The file may not contain a hidden message.');
   }
 
-  // Read message bits
-  const msgStart = lengthStart + HEADER_BITS;
+  const msgStart = lengthStart + LENGTH_BITS;
   const messageBits = allBits.slice(msgStart, msgStart + messageLength * 8);
   let decoded = bitsToString(messageBits);
 
   if (password) decoded = xorCipher(decoded, password);
   return decoded;
 }
+
+// ─── Waveform visualization (unchanged) ──────────────────────────────────────
 
 /**
  * Generate a downsampled waveform amplitude array for visualization.
