@@ -60,10 +60,10 @@ export default function ImageStego() {
       ctx.drawImage(img, 0, 0);
       const data = ctx.getImageData(0, 0, img.width, img.height);
       setImageData(data);
-      setCapacity(getCapacity(data, bitsPerChannel));
+      setCapacity(getCapacity(data, bitsPerChannel, !!password));
     };
     img.src = url;
-  }, [bitsPerChannel, imagePreview]);
+  }, [bitsPerChannel, imagePreview, password]);
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();
@@ -111,7 +111,11 @@ export default function ImageStego() {
         text: `Encoded ${message.length} characters using ${bitsPerChannel}-bit LSB.`,
       });
     } catch (err) {
-      setStatus({ type: 'error', text: err.message });
+      if (err.name === 'OperationError') {
+        setStatus({ type: 'error', text: 'Encryption failed — invalid password.' });
+      } else {
+        setStatus({ type: 'error', text: err.message });
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -153,7 +157,11 @@ export default function ImageStego() {
         text: `Decoded ${decoded.length} characters from image (${decodeMode === 'raw' ? 'Raw LSB' : 'StegaCrypt'} format).`,
       });
     } catch (err) {
-      setStatus({ type: 'error', text: err.message });
+      if (err.name === 'OperationError') {
+        setStatus({ type: 'error', text: 'Decryption failed — wrong password or corrupted data.' });
+      } else {
+        setStatus({ type: 'error', text: err.message });
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -231,7 +239,7 @@ export default function ImageStego() {
               onChange={(e) => {
                 const val = Number(e.target.value);
                 setBitsPerChannel(val);
-                if (imageData) setCapacity(getCapacity(imageData, val));
+                if (imageData) setCapacity(getCapacity(imageData, val, !!password));
               }}
             >
               <option value={1}>1 bit — least detectable</option>
@@ -245,9 +253,12 @@ export default function ImageStego() {
               <input
                 type="password"
                 className="input-field"
-                placeholder="XOR encryption key"
+                placeholder="Encryption password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (imageData) setCapacity(getCapacity(imageData, bitsPerChannel, !!e.target.value));
+                }}
               />
             </div>
           )}

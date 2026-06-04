@@ -65,7 +65,7 @@ export default function AudioStego() {
     reader.onload = (e) => {
       try {
         const buf = e.target.result;
-        const cap = getAudioCapacity(buf);
+        const cap = getAudioCapacity(buf, !!password);
         const wf  = getWaveformData(buf, 120);
 
         setAudioBuffer(buf);
@@ -112,7 +112,11 @@ export default function AudioStego() {
       setEncodedWaveform(resultWf);
       setStatus({ type: 'success', text: `Encoded ${message.length} characters into "${fileName}".` });
     } catch (err) {
-      setStatus({ type: 'error', text: err.message });
+      if (err.name === 'OperationError') {
+        setStatus({ type: 'error', text: 'Encryption failed — invalid password.' });
+      } else {
+        setStatus({ type: 'error', text: err.message });
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -134,7 +138,11 @@ export default function AudioStego() {
       setDecodedText(text);
       setStatus({ type: 'success', text: `Decoded ${text.length} characters from "${fileName}".` });
     } catch (err) {
-      setStatus({ type: 'error', text: err.message });
+      if (err.name === 'OperationError') {
+        setStatus({ type: 'error', text: 'Decryption failed — wrong password or corrupted data.' });
+      } else {
+        setStatus({ type: 'error', text: err.message });
+      }
       setDecodedText('');
     } finally {
       setIsProcessing(false);
@@ -264,9 +272,14 @@ export default function AudioStego() {
                 <input
                   type="password"
                   className="input-field"
-                  placeholder="XOR encryption key"
+                  placeholder="Encryption password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (audioBuffer) {
+                      try { setCapacity(getAudioCapacity(audioBuffer, !!e.target.value)); } catch(err) { /* ignore */ }
+                    }
+                  }}
                 />
               </div>
               <div className="input-group" style={{ margin: 0 }}>

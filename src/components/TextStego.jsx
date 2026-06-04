@@ -1,39 +1,57 @@
 import { useState } from 'react';
 import { encodeText, decodeText, analyzeText } from '../utils/textStego';
-import { Lock, Unlock, Search, Copy, CheckCircle, XCircle, AlertTriangle, Info } from './Icons';
+import { Lock, Unlock, Search, Copy, CheckCircle, XCircle, AlertTriangle, Info, Loader } from './Icons';
 
 export default function TextStego() {
   const [mode, setMode] = useState('encode');
   const [coverText, setCoverText] = useState('');
   const [secretMessage, setSecretMessage] = useState('');
+  const [password, setPassword] = useState('');
   const [outputText, setOutputText] = useState('');
   const [decodeInput, setDecodeInput] = useState('');
   const [decodedMessage, setDecodedMessage] = useState('');
   const [analysis, setAnalysis] = useState(null);
   const [status, setStatus] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleEncode = () => {
+  const handleEncode = async () => {
+    setIsProcessing(true);
+    setStatus(null);
     try {
-      const encoded = encodeText(coverText, secretMessage);
+      const encoded = await encodeText(coverText, secretMessage, password);
       setOutputText(encoded);
       const stats = analyzeText(encoded);
       setAnalysis(stats);
-      setStatus({ type: 'success', text: `Message hidden. ${stats.hiddenCharCount} invisible characters embedded.` });
+      setStatus({ type: 'success', text: `Message hidden. ${stats.hiddenCharCount} invisible characters embedded.${password ? ' (AES-256-GCM encrypted)' : ''}` });
     } catch (err) {
-      setStatus({ type: 'error', text: err.message });
+      if (err.name === 'OperationError') {
+        setStatus({ type: 'error', text: 'Encryption failed — invalid password.' });
+      } else {
+        setStatus({ type: 'error', text: err.message });
+      }
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const handleDecode = () => {
+  const handleDecode = async () => {
+    setIsProcessing(true);
+    setStatus(null);
     try {
-      const decoded = decodeText(decodeInput);
+      const decoded = await decodeText(decodeInput, password);
       setDecodedMessage(decoded);
       const stats = analyzeText(decodeInput);
       setAnalysis(stats);
       setStatus({ type: 'success', text: `Hidden message found — ${decoded.length} characters decoded.` });
     } catch (err) {
-      setStatus({ type: 'error', text: err.message });
+      if (err.name === 'OperationError') {
+        setStatus({ type: 'error', text: 'Decryption failed — wrong password or corrupted data.' });
+      } else {
+        setStatus({ type: 'error', text: err.message });
+      }
       setDecodedMessage('');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -102,9 +120,20 @@ export default function TextStego() {
               />
             </div>
 
+            <div className="input-group">
+              <label className="input-label">Password (optional)</label>
+              <input
+                type="password"
+                className="input-field"
+                placeholder="Encryption password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
             <div className="btn-group">
-              <button className="btn btn-primary" onClick={handleEncode} disabled={!coverText || !secretMessage}>
-                <Lock size={15} /> Encode message
+              <button className="btn btn-primary" onClick={handleEncode} disabled={!coverText || !secretMessage || isProcessing}>
+                {isProcessing ? <Loader size={15} /> : <Lock size={15} />} {isProcessing ? 'Encoding...' : 'Encode message'}
               </button>
             </div>
 
@@ -137,9 +166,20 @@ export default function TextStego() {
               />
             </div>
 
+            <div className="input-group">
+              <label className="input-label">Password (if encrypted)</label>
+              <input
+                type="password"
+                className="input-field"
+                placeholder="Encryption password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
             <div className="btn-group">
-              <button className="btn btn-primary" onClick={handleDecode} disabled={!decodeInput}>
-                <Unlock size={15} /> Decode
+              <button className="btn btn-primary" onClick={handleDecode} disabled={!decodeInput || isProcessing}>
+                {isProcessing ? <Loader size={15} /> : <Unlock size={15} />} {isProcessing ? 'Decoding...' : 'Decode'}
               </button>
               <button className="btn btn-secondary" onClick={handleAnalyze} disabled={!decodeInput}>
                 <Search size={15} /> Analyze
@@ -204,6 +244,7 @@ export default function TextStego() {
           <span>
             Each character is converted to binary, then represented as invisible Unicode characters
             (Zero-Width Space = 0, Zero-Width Non-Joiner = 1) and embedded between the words of your cover text.
+            When a password is provided, the message is encrypted with AES-256-GCM before embedding.
           </span>
         </div>
       </div>
