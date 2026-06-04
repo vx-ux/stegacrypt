@@ -1455,6 +1455,7 @@ textarea.input-field {
   line-height: 1.05;
   letter-spacing: -3px;
   margin-bottom: var(--space-md);
+  padding-bottom: 0.2em;
   background: linear-gradient(135deg, #f1f5f9 30%, #06b6d4 60%, #8b5cf6);
   -webkit-background-clip: text;
   background-clip: text;
