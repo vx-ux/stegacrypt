@@ -112,7 +112,7 @@ export default function ImageStego() {
       });
     } catch (err) {
       if (err.name === 'OperationError') {
-        setStatus({ type: 'error', text: 'Encryption failed — invalid password.' });
+        setStatus({ type: 'error', text: 'Encryption failed - invalid password.' });
       } else {
         setStatus({ type: 'error', text: err.message });
       }
@@ -158,7 +158,7 @@ export default function ImageStego() {
       });
     } catch (err) {
       if (err.name === 'OperationError') {
-        setStatus({ type: 'error', text: 'Decryption failed — wrong password or corrupted data.' });
+        setStatus({ type: 'error', text: 'Decryption failed - wrong password or corrupted data.' });
       } else {
         setStatus({ type: 'error', text: err.message });
       }
@@ -218,7 +218,7 @@ export default function ImageStego() {
             <>
               <div className="drop-zone-icon"><Upload size={32} /></div>
               <p className="drop-zone-text">Drop an image here or click to upload</p>
-              <p className="drop-zone-hint">PNG, JPG, BMP supported — PNG recommended for lossless output</p>
+              <p className="drop-zone-hint">PNG, JPG, BMP supported - PNG recommended for lossless output</p>
             </>
           )}
           <input
@@ -242,9 +242,9 @@ export default function ImageStego() {
                 if (imageData) setCapacity(getCapacity(imageData, val, !!password));
               }}
             >
-              <option value={1}>1 bit — least detectable</option>
-              <option value={2}>2 bits — balanced</option>
-              <option value={4}>4 bits — maximum capacity</option>
+              <option value={1}>1 bit - least detectable</option>
+              <option value={2}>2 bits - balanced</option>
+              <option value={4}>4 bits - maximum capacity</option>
             </select>
           </div>
           {!(mode === 'decode' && decodeMode === 'raw') && (
@@ -343,7 +343,7 @@ export default function ImageStego() {
           </div>
         )}
 
-        {/* Encode result — comparison */}
+        {/* Encode result - comparison */}
         {mode === 'encode' && result && (
           <div className="comparison-grid">
             <div className="comparison-panel">

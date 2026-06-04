@@ -1,11 +1,7 @@
-/**
- * Unified Metadata Extraction — supports JPEG, PNG, GIF, WebP, BMP, TIFF
- * Auto-detects format via magic bytes and extracts all available metadata.
- */
+
 
 import { extractExif, formatMetadata as formatExifMetadata } from './exif';
 
-// ─── Magic bytes for format detection ─────────────────────────────────────────
 
 const SIGNATURES = {
   JPEG: [0xFF, 0xD8, 0xFF],
@@ -32,7 +28,6 @@ function detectFormat(buffer) {
   return 'Unknown';
 }
 
-// ─── PNG chunk parser ─────────────────────────────────────────────────────────
 
 function parsePNG(buffer) {
   const dv = new DataView(buffer);
@@ -94,7 +89,7 @@ function parsePNG(buffer) {
       const nullIndex = chunkData.indexOf(0);
       if (nullIndex > 0) {
         const key = decodeText(chunkData.subarray(0, nullIndex));
-        fields.push({ label: `zTXt: ${key}`, value: '(compressed text — raw extraction not supported)' });
+        fields.push({ label: `zTXt: ${key}`, value: '(compressed text - raw extraction not supported)' });
       }
     }
 
@@ -137,7 +132,6 @@ function parsePNG(buffer) {
   return { fields, gps: null };
 }
 
-// ─── GIF parser ───────────────────────────────────────────────────────────────
 
 function parseGIF(buffer) {
   const dv = new DataView(buffer);
@@ -188,7 +182,6 @@ function parseGIF(buffer) {
   return { fields, gps: null };
 }
 
-// ─── BMP parser ───────────────────────────────────────────────────────────────
 
 function parseBMP(buffer) {
   const dv = new DataView(buffer);
@@ -230,7 +223,6 @@ function parseBMP(buffer) {
   return { fields, gps: null };
 }
 
-// ─── WebP parser ──────────────────────────────────────────────────────────────
 
 function parseWebP(buffer) {
   const dv = new DataView(buffer);
@@ -316,7 +308,6 @@ function parseWebP(buffer) {
   return { fields, gps: null };
 }
 
-// ─── TIFF parser (reuse EXIF logic) ───────────────────────────────────────────
 
 function parseTIFF(buffer) {
   // TIFF files share the same IFD structure as EXIF
@@ -326,7 +317,6 @@ function parseTIFF(buffer) {
   return { fields, gps: exifData.gps };
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function decodeText(bytes) {
   try {
@@ -342,14 +332,8 @@ function formatBytes(bytes) {
   return `${(bytes / 1048576).toFixed(2)} MB`;
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
 
-/**
- * Extract metadata from any supported image format.
- * @param {ArrayBuffer} buffer - File data
- * @param {string} fileName - File name (for display)
- * @returns {{ format: string, fields: Array<{label: string, value: string}>, gps: object|null }}
- */
+
 export function extractMetadata(buffer, fileName = '') {
   const format = detectFormat(buffer);
 
@@ -392,15 +376,7 @@ export function extractMetadata(buffer, fileName = '') {
   return { format, fields: allFields, gps: parsed.gps };
 }
 
-/**
- * Strip metadata from JPEG or PNG files.
- * JPEG: Remove APP1 (EXIF), APP13 (IPTC) segments. Keep image data and APP0 (JFIF).
- * PNG: Remove tEXt, iTXt, zTXt chunks. Keep IHDR, IDAT, IEND, pHYs, gAMA.
- *
- * @param {ArrayBuffer} buffer - Original file
- * @param {string} format - Detected format ('JPEG' or 'PNG')
- * @returns {ArrayBuffer} Cleaned file
- */
+
 export function stripMetadata(buffer, format) {
   if (format === 'JPEG') return stripJPEG(buffer);
   if (format === 'PNG') return stripPNG(buffer);
@@ -421,7 +397,7 @@ function stripJPEG(buffer) {
 
     const marker = bytes[offset + 1];
 
-    // SOS (Start of Scan) — copy everything from here to end (image data)
+    // SOS (Start of Scan) - copy everything from here to end (image data)
     if (marker === 0xDA) {
       for (let i = offset; i < bytes.length; i++) {
         output.push(bytes[i]);
@@ -429,7 +405,7 @@ function stripJPEG(buffer) {
       break;
     }
 
-    // Skip APP1 (EXIF/XMP), APP2 (ICC — keep for conservative), APP13 (IPTC)
+    // Skip APP1 (EXIF/XMP), APP2 (ICC - keep for conservative), APP13 (IPTC)
     if (marker === 0xE1 || marker === 0xED) {
       const segLen = dv.getUint16(offset + 2, false);
       offset += 2 + segLen;

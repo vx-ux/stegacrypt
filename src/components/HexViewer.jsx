@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback, useMemo } from 'react';
 import { Upload, Search, Info, XCircle } from './Icons';
 
-// ─── File signature detection ────────────────────────────────────────────────
 
 const FILE_SIGNATURES = [
   { name: 'JPEG Image', ext: 'jpg', bytes: [0xFF, 0xD8, 0xFF] },
@@ -38,7 +37,6 @@ function detectSignature(bytes) {
   return null;
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
 
 const ROW_HEIGHT = 24;
 const VISIBLE_ROWS = 32;
@@ -258,7 +256,7 @@ export default function HexViewer() {
             <>
               <div className="drop-zone-icon"><Upload size={24} /></div>
               <p className="drop-zone-text">Drop any file to inspect its hex dump</p>
-              <p className="drop-zone-hint">PNG, JPG, PDF, ZIP, EXE, WAV — any file format</p>
+              <p className="drop-zone-hint">PNG, JPG, PDF, ZIP, EXE, WAV - any file format</p>
             </>
           )}
           <input ref={fileRef} type="file" style={{ display: 'none' }} onChange={(e) => loadFile(e.target.files[0])} />

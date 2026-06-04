@@ -1,14 +1,6 @@
-/**
- * Steganalysis — Tools for detecting hidden data in images
- */
 
-/**
- * Extract bit planes from image data
- * Returns an array of ImageData objects, one per bit plane
- * @param {ImageData} imageData - Source image
- * @param {string} channel - 'r', 'g', 'b', or 'all'
- * @returns {Array<{name: string, imageData: ImageData}>}
- */
+
+
 export function extractBitPlanes(imageData, channel = 'all') {
   const { width, height, data } = imageData;
   const planes = [];
@@ -50,12 +42,7 @@ export function extractBitPlanes(imageData, channel = 'all') {
   return planes;
 }
 
-/**
- * Chi-Square Analysis for LSB steganography detection
- * Based on the chi-square test for uniformity of LSB pairs
- * @param {ImageData} imageData - Image to analyze
- * @returns {object} Analysis results with confidence score
- */
+
 export function chiSquareAnalysis(imageData) {
   const { data } = imageData;
   const results = [];
@@ -64,7 +51,7 @@ export function chiSquareAnalysis(imageData) {
   const channelNames = ['Red', 'Green', 'Blue'];
 
   for (let ch = 0; ch < 3; ch++) {
-    // Count pixel value pairs (2i, 2i+1) — PoVs (Pairs of Values)
+    // Count pixel value pairs (2i, 2i+1) - PoVs (Pairs of Values)
     const histogram = new Array(256).fill(0);
 
     for (let i = 0; i < data.length; i += 4) {
@@ -113,9 +100,7 @@ export function chiSquareAnalysis(imageData) {
   };
 }
 
-/**
- * Approximate chi-square CDF using the regularized incomplete gamma function
- */
+
 function chiSquareCDF(x, k) {
   if (x <= 0) return 0;
   return regularizedGammaP(k / 2, x / 2);
@@ -143,10 +128,7 @@ function regularizedGammaP(a, x) {
   }
 }
 
-/**
- * Regularized incomplete gamma function Q(a, x) = 1 - P(a, x)
- * Evaluated via continued fraction using Lentz's method
- */
+
 function regularizedGammaQ(a, x) {
   const maxIterations = 200;
   const eps = 1e-14;
@@ -173,9 +155,7 @@ function regularizedGammaQ(a, x) {
   return Math.exp(-x + a * Math.log(x) - logGamma(a)) * h;
 }
 
-/**
- * Log-gamma function (Lanczos approximation)
- */
+
 function logGamma(x) {
   const coefficients = [
     76.18009172947146,
@@ -198,11 +178,7 @@ function logGamma(x) {
   return -tmp + Math.log(2.5066282746310005 * ser / x);
 }
 
-/**
- * Generate histogram data for an image
- * @param {ImageData} imageData
- * @returns {object} Histogram data for each channel
- */
+
 export function generateHistogram(imageData) {
   const { data } = imageData;
   const channels = {
@@ -225,11 +201,7 @@ export function generateHistogram(imageData) {
   return channels;
 }
 
-/**
- * Visual attack — enhance LSB differences
- * @param {ImageData} imageData
- * @returns {ImageData} Enhanced image showing LSB patterns
- */
+
 export function visualAttack(imageData) {
   const { width, height, data } = imageData;
   const result = new ImageData(width, height);

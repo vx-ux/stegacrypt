@@ -5,7 +5,7 @@ import { ImageIcon, Type, Search, Microscope, Volume2, Hash, Binary, ArrowRight 
 
 gsap.registerPlugin(ScrollTrigger);
 
-/* ── Section Data ── */
+
 const SECTIONS = [
   {
     id: 'image',
@@ -65,7 +65,7 @@ const SECTIONS = [
     bullets: null,
     cta: 'Open Metadata Tool',
     visual: {
-      title: 'EXIF \u2014 IMG_3847.jpg',
+      title: 'EXIF - IMG_3847.jpg',
       lines: [
         { text: 'Camera:   ', highlight: 'Canon EOS R5', suffix: '' },
         { text: 'GPS:      ', highlight: '37.7749\u00b0 N, 122.4194\u00b0 W', suffix: '' },
@@ -83,7 +83,7 @@ const SECTIONS = [
     Icon: Microscope,
     accentColor: '#f59e0b',
     title: 'Detect what\u2019s hidden',
-    body: 'Chi-square analysis detects LSB steganography by measuring statistical anomalies in pixel value distributions \u2014 clean images follow natural frequency curves, stego images show unnaturally flat distributions. Bit-plane extraction reveals hidden patterns invisible to the naked eye. Used in digital forensics, malware analysis, and CTF solving.',
+    body: 'Chi-square analysis detects LSB steganography by measuring statistical anomalies in pixel value distributions - clean images follow natural frequency curves, stego images show unnaturally flat distributions. Bit-plane extraction reveals hidden patterns invisible to the naked eye. Used in digital forensics, malware analysis, and CTF solving.',
     bullets: null,
     cta: 'Open Steganalysis Tool',
     visual: {
@@ -110,7 +110,7 @@ const SECTIONS = [
     bullets: null,
     cta: 'Open Audio Tool',
     visual: {
-      title: 'waveform_analysis \u2014 track.wav',
+      title: 'waveform_analysis - track.wav',
       lines: [
         { text: 'Sample Rate:  ', highlight: '44100 Hz', suffix: '' },
         { text: 'Bit Depth:    ', highlight: '16-bit', suffix: '' },
@@ -153,7 +153,7 @@ const SECTIONS = [
     bullets: null,
     cta: 'Open Hex Tool',
     visual: {
-      title: 'hexdump \u2014 image.png',
+      title: 'hexdump - image.png',
       lines: [
         { text: '00000000  ', highlight: '89 50 4E 47', suffix: ' 0D 0A 1A 0A' },
         { text: '00000008  00 00 00 0D 49 48 44 52' },
@@ -166,7 +166,7 @@ const SECTIONS = [
   },
 ];
 
-/* ── Terminal Visual Component ── */
+
 function TerminalVisual({ data, accentColor }) {
   return (
     <div className="landing-terminal" style={{ '--terminal-accent': accentColor }}>
@@ -192,7 +192,7 @@ function TerminalVisual({ data, accentColor }) {
   );
 }
 
-/* ── Scroll Indicator Arrow ── */
+
 function ScrollIndicator() {
   return (
     <div className="scroll-indicator">
@@ -213,7 +213,7 @@ function ScrollIndicator() {
   );
 }
 
-/* ── Main HomePage Component ── */
+
 export default function HomePage({ setActiveTab }) {
   const containerRef = useRef(null);
 
@@ -292,7 +292,7 @@ export default function HomePage({ setActiveTab }) {
 
   return (
     <div ref={containerRef} className="landing-page">
-      {/* ════════════ HERO ════════════ */}
+      
       <section className="landing-hero">
         <div className="landing-hero-content">
           <div className="landing-hero-badge">
@@ -306,7 +306,7 @@ export default function HomePage({ setActiveTab }) {
         <ScrollIndicator />
       </section>
 
-      {/* ════════════ INTRO ════════════ */}
+      
       <section className="landing-intro">
         <div className="landing-section-inner">
           <h2 className="landing-animate">
@@ -317,7 +317,7 @@ export default function HomePage({ setActiveTab }) {
               <h3>How it works</h3>
               <p>
                 LSB (Least Significant Bit) encoding changes the last bit of a
-                pixel&rsquo;s RGB value &mdash; a modification so small it&rsquo;s
+                pixel&rsquo;s RGB value - a modification so small it&rsquo;s
                 completely imperceptible to the human eye. An image that looks
                 identical can carry kilobytes of hidden data, encoded one bit at
                 a time across millions of color channels.
@@ -338,7 +338,7 @@ export default function HomePage({ setActiveTab }) {
         </div>
       </section>
 
-      {/* ════════════ TOOL SECTIONS ════════════ */}
+      
       {SECTIONS.map((section) => (
         <section
           key={section.id}
@@ -381,7 +381,7 @@ export default function HomePage({ setActiveTab }) {
         </section>
       ))}
 
-      {/* ════════════ FOOTER STRIP ════════════ */}
+      
       <section className="landing-footer-strip">
         <div className="landing-section-inner">
           <div className="landing-footer-links landing-animate">

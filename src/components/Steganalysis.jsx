@@ -19,7 +19,7 @@ export default function Steganalysis() {
 
   const fileInputRef = useRef(null);
   // This canvas is always mounted (hidden) so canvasRef.current is never null
-  // when img.onload fires — even before React re-renders with the image state.
+  // when img.onload fires - even before React re-renders with the image state.
   const canvasRef = useRef(null);
   const visualAttackCanvasRef = useRef(null);
 
@@ -124,7 +124,7 @@ export default function Steganalysis() {
       const resultData = await runWorkerTask('analysis:visualAttack', { imageData: clonedData }, [clonedData.data.buffer]);
       
       setVisualAttackData(resultData);
-      setStatus({ type: 'success', text: 'Visual attack applied — LSB values amplified to full range.' });
+      setStatus({ type: 'success', text: 'Visual attack applied - LSB values amplified to full range.' });
     } catch (err) {
       setStatus({ type: 'error', text: err.message });
     } finally {
@@ -174,7 +174,7 @@ export default function Steganalysis() {
         <p>Detect hidden payloads in images through statistical analysis, bit plane extraction, and visual attacks.</p>
       </div>
 
-      {/* Hidden extraction canvas — always in DOM so canvasRef is never null on img.onload */}
+      {/* Hidden extraction canvas - always in DOM so canvasRef is never null on img.onload */}
       <canvas ref={canvasRef} style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }} aria-hidden="true" />
 
       <div className="glass-card">

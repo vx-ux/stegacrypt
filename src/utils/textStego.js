@@ -1,17 +1,4 @@
-/**
- * Text Steganography using Zero-Width Unicode Characters (v2)
- *
- * Encodes binary data as invisible Unicode characters:
- * - U+200B (Zero-Width Space)      → 0
- * - U+200C (Zero-Width Non-Joiner) → 1
- * - U+FEFF (Zero-Width No-Break Space) → message start/end marker
- *
- * v2 changes:
- * - Optional AES-256-GCM encryption via password
- * - Byte-length header for reliable extraction of encrypted payloads
- * - UTF-8 encoding via TextEncoder (fixes Unicode/emoji support)
- * - Backward-compatible: decodeText() handles both v1 (no header) and v2 (with header) formats
- */
+
 
 import { aesEncrypt, aesDecrypt } from './crypto.js';
 
@@ -22,7 +9,6 @@ const MARKER = '\uFEFF'; // Start/end marker
 const FLAG_PLAIN     = 0x00;
 const FLAG_ENCRYPTED = 0x01;
 
-// ─── Bit/Byte helpers ─────────────────────────────────────────────────────────
 
 function bytesToZwChars(bytes) {
   let zwChars = '';
@@ -47,19 +33,8 @@ function zwCharsToBytes(hidden) {
   return bytes;
 }
 
-// ─── Encode ───────────────────────────────────────────────────────────────────
 
-/**
- * Encode a secret message into a cover text using zero-width characters.
- *
- * v2 wire format (between markers):
- *   LENGTH(4 bytes big-endian) + FLAG(1 byte) + PAYLOAD
- *
- * @param {string} coverText - The visible cover text
- * @param {string} secretMessage - The message to hide
- * @param {string} password - Optional password for AES-256-GCM encryption
- * @returns {Promise<string>} The cover text with hidden message embedded
- */
+
 export async function encodeText(coverText, secretMessage, password = '') {
   if (!coverText || !secretMessage) {
     throw new Error('Both cover text and secret message are required.');
@@ -101,16 +76,8 @@ export async function encodeText(coverText, secretMessage, password = '') {
   return coverText.slice(0, firstSpace) + hiddenPayload + coverText.slice(firstSpace);
 }
 
-// ─── Decode ───────────────────────────────────────────────────────────────────
 
-/**
- * Decode a hidden message from text containing zero-width characters.
- * Supports both v2 (length header + flag + AES) and v1 (raw charCode) formats.
- *
- * @param {string} text - Text that may contain hidden zero-width characters
- * @param {string} password - Password for decryption (if used during encoding)
- * @returns {Promise<string>} The decoded secret message
- */
+
 export async function decodeText(text, password = '') {
   // Find markers
   const firstMarker = text.indexOf(MARKER);
@@ -172,13 +139,8 @@ export async function decodeText(text, password = '') {
   return chars.join('');
 }
 
-// ─── Analysis (unchanged) ─────────────────────────────────────────────────────
 
-/**
- * Analyze text for zero-width characters
- * @param {string} text - Text to analyze
- * @returns {object} Analysis results
- */
+
 export function analyzeText(text) {
   const zwChars = {
     '\u200B': { name: 'Zero-Width Space', count: 0 },

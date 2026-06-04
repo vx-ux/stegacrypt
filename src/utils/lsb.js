@@ -1,27 +1,15 @@
-/**
- * LSB Image Steganography — v2
- *
- * Hides data in the Least Significant Bits of image pixel channels.
- *
- * v2 changes:
- * - AES-256-GCM encryption replaces XOR cipher
- * - New "STC2" magic header for v2 format
- * - UTF-8 encoding via TextEncoder (fixes Unicode/emoji corruption)
- * - Backward-compatible: decode() falls back to legacy "STCR" (v1 XOR) format
- */
+
 
 import { aesEncrypt, aesDecrypt, bytesToBits, bitsToBytes, AES_OVERHEAD } from './crypto.js';
 
-// ─── Constants ───────────────────────────────────────────────────────────────
 
 const MAGIC_V2 = 'STC2';        // v2 magic header (AES-256-GCM)
-const MAGIC_V1 = 'STCR';        // v1 magic header (legacy XOR) — decode-only
+const MAGIC_V1 = 'STCR';        // v1 magic header (legacy XOR) - decode-only
 const MAGIC_LENGTH = 4;          // bytes
 const LENGTH_BITS = 32;          // 32-bit payload byte length field
 const FLAG_PLAIN     = 0x00;
 const FLAG_ENCRYPTED = 0x01;
 
-// ─── Legacy helpers (kept for v1 backward compatibility in decode) ────────────
 
 function xorCipher(text, password) {
   if (!password) return text;
@@ -71,16 +59,8 @@ function bitsToNumber(bits) {
   return num;
 }
 
-// ─── Capacity ────────────────────────────────────────────────────────────────
 
-/**
- * Calculate the maximum number of characters that can be encoded.
- * @param {ImageData} imageData - The image data
- * @param {number} bitsPerChannel - Bits per channel (1, 2, or 4)
- * @param {boolean} encrypted - Whether AES encryption will be used
- * @returns {number} Maximum characters (approximate for encrypted, since UTF-8
- *                   encoding may use more than 1 byte per character)
- */
+
 export function getCapacity(imageData, bitsPerChannel = 1, encrypted = false) {
   const totalPixels = imageData.width * imageData.height;
   const totalBits = totalPixels * 3 * bitsPerChannel;
@@ -100,20 +80,8 @@ export function getCapacity(imageData, bitsPerChannel = 1, encrypted = false) {
   return Math.max(0, availableBytes);
 }
 
-// ─── Encode (v2) ─────────────────────────────────────────────────────────────
 
-/**
- * Encode a message into image data using LSB steganography (v2 format).
- * Uses AES-256-GCM when a password is provided, UTF-8 for text encoding.
- *
- * Wire format: MAGIC("STC2", 4B) + PAYLOAD_LENGTH(4B big-endian) + FLAG(1B) + PAYLOAD
- *
- * @param {ImageData} imageData - The original image data (will be modified in place)
- * @param {string} message - The message to encode
- * @param {number} bitsPerChannel - Bits per channel to use (1, 2, or 4)
- * @param {string} password - Optional password for AES-256-GCM encryption
- * @returns {Promise<ImageData>} The modified image data with embedded message
- */
+
 export async function encode(imageData, message, bitsPerChannel = 1, password = '') {
   // Build payload bytes: FLAG + content
   let payloadBytes;
@@ -164,17 +132,8 @@ export async function encode(imageData, message, bitsPerChannel = 1, password = 
   return imageData;
 }
 
-// ─── Decode (v2 with v1 fallback) ────────────────────────────────────────────
 
-/**
- * Decode a hidden message from image data.
- * Supports both v2 (STC2 / AES-256-GCM) and v1 (STCR / XOR) formats.
- *
- * @param {ImageData} imageData - The image data with hidden message
- * @param {number} bitsPerChannel - Bits per channel used during encoding
- * @param {string} password - Password for decryption (if used during encoding)
- * @returns {Promise<string>} The decoded message
- */
+
 export async function decode(imageData, bitsPerChannel = 1, password = '') {
   const data = imageData.data;
   const allBits = [];
@@ -202,9 +161,7 @@ export async function decode(imageData, bitsPerChannel = 1, password = '') {
   }
 }
 
-/**
- * Decode v2 format: STC2 + LENGTH(4B) + FLAG(1B) + PAYLOAD
- */
+
 async function decodeV2(allBits, password) {
   const headerStart = MAGIC_LENGTH * 8;
 
@@ -236,10 +193,7 @@ async function decodeV2(allBits, password) {
   }
 }
 
-/**
- * Decode legacy v1 format: STCR + LENGTH(4B) + MESSAGE (charCode-based, optional XOR)
- * Kept for backward compatibility with images encoded before the AES upgrade.
- */
+
 function decodeLegacyV1(allBits, password) {
   const headerStart = MAGIC_LENGTH * 8;
 
@@ -261,17 +215,8 @@ function decodeLegacyV1(allBits, password) {
   return decoded;
 }
 
-// ─── Raw LSB decode (unchanged) ──────────────────────────────────────────────
 
-/**
- * Decode a hidden message using raw LSB (null-terminated) — compatible with
- * Python PIL / Pillow and other standard tools that don't use a magic header.
- * Reads 1 bit per RGB channel, stops when a null byte (\0) is found.
- *
- * @param {ImageData} imageData - The image data with hidden message
- * @param {number} bitsPerChannel - Bits per channel (1, 2, or 4)
- * @returns {string} The decoded message
- */
+
 export function decodeRaw(imageData, bitsPerChannel = 1) {
   const data = imageData.data;
   const lsbMask = (1 << bitsPerChannel) - 1;

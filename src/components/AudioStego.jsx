@@ -3,10 +3,7 @@ import { getAudioCapacity, getWaveformData } from '../utils/audioStego';
 import { runWorkerTask } from '../workers/workerClient';
 import { Lock, Unlock, Upload, Download, Copy, CheckCircle, XCircle, Info, Loader } from './Icons';
 
-/**
- * Waveform bar-chart visualizer.
- * Renders a normalized amplitude array as vertical bars.
- */
+
 function Waveform({ data, color = 'var(--accent-cyan)', label }) {
   if (!data || data.length === 0) return null;
   return (
@@ -46,7 +43,6 @@ export default function AudioStego() {
 
   const fileInputRef = useRef(null);
 
-  // ── File loading ────────────────────────────────────────────────────────────
 
   const loadFile = useCallback((file) => {
     if (!file) return;
@@ -75,7 +71,7 @@ export default function AudioStego() {
         setEncodedWaveform(null);
         setEncodedBuffer(null);
         setDecodedText('');
-        setStatus({ type: 'success', text: `Loaded "${file.name}" — ${cap.toLocaleString()} characters available.` });
+        setStatus({ type: 'success', text: `Loaded "${file.name}" - ${cap.toLocaleString()} characters available.` });
       } catch (err) {
         setStatus({ type: 'error', text: err.message });
       }
@@ -89,7 +85,6 @@ export default function AudioStego() {
     loadFile(e.dataTransfer.files[0]);
   }, [loadFile]);
 
-  // ── Encode ──────────────────────────────────────────────────────────────────
 
   const handleEncode = async () => {
     if (!audioBuffer || !message) {
@@ -113,7 +108,7 @@ export default function AudioStego() {
       setStatus({ type: 'success', text: `Encoded ${message.length} characters into "${fileName}".` });
     } catch (err) {
       if (err.name === 'OperationError') {
-        setStatus({ type: 'error', text: 'Encryption failed — invalid password.' });
+        setStatus({ type: 'error', text: 'Encryption failed - invalid password.' });
       } else {
         setStatus({ type: 'error', text: err.message });
       }
@@ -122,7 +117,6 @@ export default function AudioStego() {
     }
   };
 
-  // ── Decode ──────────────────────────────────────────────────────────────────
 
   const handleDecode = async () => {
     if (!audioBuffer) {
@@ -139,7 +133,7 @@ export default function AudioStego() {
       setStatus({ type: 'success', text: `Decoded ${text.length} characters from "${fileName}".` });
     } catch (err) {
       if (err.name === 'OperationError') {
-        setStatus({ type: 'error', text: 'Decryption failed — wrong password or corrupted data.' });
+        setStatus({ type: 'error', text: 'Decryption failed - wrong password or corrupted data.' });
       } else {
         setStatus({ type: 'error', text: err.message });
       }
@@ -149,7 +143,6 @@ export default function AudioStego() {
     }
   };
 
-  // ── Download ─────────────────────────────────────────────────────────────────
 
   const handleDownload = () => {
     if (!encodedBuffer) return;
@@ -162,7 +155,6 @@ export default function AudioStego() {
     URL.revokeObjectURL(url);
   };
 
-  // ── Derived ─────────────────────────────────────────────────────────────────
 
   const usedPercent = message.length > 0 && capacity > 0
     ? Math.min((message.length / capacity) * 100, 100)
@@ -182,7 +174,7 @@ export default function AudioStego() {
         <h2>Audio Steganography</h2>
         <p>
           Conceal messages inside WAV audio files by modifying the Least Significant Bit of each
-          sample. The change is ±1 amplitude unit — completely inaudible to the human ear.
+          sample. The change is ±1 amplitude unit - completely inaudible to the human ear.
         </p>
       </div>
 

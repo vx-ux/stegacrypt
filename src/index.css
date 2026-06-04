@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
-/* ===== CSS Custom Properties ===== */
+
 :root {
   /* Fluid Typography Scale */
   --fluid-base: calc(clamp(320px, 100vw, 1920px) / 1728 * 16);
@@ -35,7 +35,7 @@
   --border-color: rgba(148, 163, 184, 0.1);
   --border-glow: rgba(6, 182, 212, 0.4);
 
-  /* Dynamic nav accent — overridden per-section via JS */
+  /* Dynamic nav accent - overridden per-section via JS */
   --nav-accent: #06b6d4;
   --nav-accent-glow: rgba(6, 182, 212, 0.3);
 
@@ -77,7 +77,7 @@
   --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ===== Reset & Base ===== */
+
 *,
 *::before,
 *::after {
@@ -108,7 +108,7 @@ body {
   flex-direction: column;
 }
 
-/* ===== Scrollbar ===== */
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -127,7 +127,7 @@ body {
   background: var(--text-secondary);
 }
 
-/* ===== Animated Background ===== */
+
 .app-background {
   position: fixed;
   inset: 0;
@@ -167,7 +167,7 @@ body {
   background-size: 60px 60px;
 }
 
-/* ===== Navbar ===== */
+
 .navbar {
   position: sticky;
   top: 0;
@@ -288,7 +288,7 @@ body {
   cursor: pointer;
 }
 
-/* ===== Hero Section ===== */
+
 .hero {
   text-align: center;
   padding: var(--space-3xl) var(--space-xl) var(--space-2xl);
@@ -482,7 +482,7 @@ body {
   color: var(--accent-cyan);
 }
 
-/* ===== Section / Tool Container ===== */
+
 .tool-section {
   position: relative;
   z-index: 1;
@@ -509,7 +509,7 @@ body {
   font-size: var(--fluid-body);
 }
 
-/* ===== Glass Card ===== */
+
 .glass-card {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -557,7 +557,7 @@ body {
   animation: borderSweep 2.5s linear infinite;
 }
 
-/* ===== Drop Zone ===== */
+
 .drop-zone {
   border: 2px dashed var(--border-color);
   border-radius: var(--radius-lg);
@@ -615,7 +615,7 @@ body {
   object-fit: contain;
 }
 
-/* ===== Forms & Inputs ===== */
+
 .input-group {
   margin-bottom: var(--space-lg);
 }
@@ -723,7 +723,7 @@ textarea.input-field {
   color: var(--accent-cyan);
 }
 
-/* ===== Buttons ===== */
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -787,7 +787,7 @@ textarea.input-field {
   flex-wrap: wrap;
 }
 
-/* ===== Image Comparison ===== */
+
 .comparison-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -820,7 +820,7 @@ textarea.input-field {
   background: repeating-conic-gradient(rgba(148, 163, 184, 0.05) 0% 25%, transparent 0% 50%) 50% / 16px 16px;
 }
 
-/* ===== Info Bar / Status ===== */
+
 .info-bar {
   display: flex;
   align-items: center;
@@ -853,7 +853,7 @@ textarea.input-field {
   color: var(--accent-orange);
 }
 
-/* ===== Metadata Table ===== */
+
 .metadata-table {
   width: 100%;
   border-collapse: collapse;
@@ -882,7 +882,7 @@ textarea.input-field {
   font-size: 0.8rem;
 }
 
-/* ===== Bit Plane Grid ===== */
+
 .bitplane-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -911,7 +911,7 @@ textarea.input-field {
   margin-top: var(--space-xs);
 }
 
-/* ===== Capacity Bar ===== */
+
 .capacity-bar-wrapper {
   margin-top: var(--space-md);
 }
@@ -944,7 +944,7 @@ textarea.input-field {
   background: linear-gradient(90deg, var(--accent-orange), var(--accent-red));
 }
 
-/* ===== Text Stego Character Counter ===== */
+
 .char-counter {
   display: flex;
   gap: var(--space-lg);
@@ -973,7 +973,7 @@ textarea.input-field {
   letter-spacing: 0.5px;
 }
 
-/* ===== Footer ===== */
+
 .footer {
   margin-top: auto;
   padding: var(--space-xl);
@@ -998,7 +998,7 @@ textarea.input-field {
   color: var(--text-primary);
 }
 
-/* ===== Decoded / Encoded Output ===== */
+
 .decoded-output {
   padding: var(--space-md);
   background: rgba(16, 185, 129, 0.05);
@@ -1025,7 +1025,7 @@ textarea.input-field {
   line-height: 1.6;
 }
 
-/* ===== Explainer Box ===== */
+
 .explainer-box {
   display: flex;
   gap: var(--space-sm);
@@ -1039,7 +1039,7 @@ textarea.input-field {
   line-height: 1.7;
 }
 
-/* ===== Hero Tech Bar ===== */
+
 .hero-tech-bar {
   display: inline-flex;
   align-items: center;
@@ -1060,7 +1060,7 @@ textarea.input-field {
   border-radius: 50%;
 }
 
-/* ===== Animations ===== */
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -1113,7 +1113,7 @@ textarea.input-field {
   to { transform: rotate(360deg); }
 }
 
-/* ===== Analysis Chart Bars ===== */
+
 .histogram-container {
   display: flex;
   align-items: flex-end;
@@ -1139,7 +1139,7 @@ textarea.input-field {
   opacity: 1;
 }
 
-/* ===== Responsive ===== */
+
 @media (max-width: 768px) {
   .navbar-tabs {
     display: none;
@@ -1194,7 +1194,7 @@ textarea.input-field {
   }
 }
 
-/* ===== Error Boundary ===== */
+
 .error-boundary-wrapper {
   position: relative;
   z-index: 1;
@@ -1267,7 +1267,7 @@ textarea.input-field {
   flex-wrap: wrap;
 }
 
-/* ===== Audio Steganography ===== */
+
 .audio-loaded {
   display: flex;
   flex-direction: column;
@@ -1334,7 +1334,7 @@ textarea.input-field {
   transition: height 0.1s ease;
 }
 
-/* ===== Loading Spinner ===== */
+
 .spinner {
   animation: spin 1s linear infinite;
 }
@@ -1344,7 +1344,7 @@ textarea.input-field {
   to { transform: rotate(360deg); }
 }
 
-/* ===== Scroll Reveal (Intersection Observer) ===== */
+
 .scroll-reveal {
   opacity: 0;
   transform: translateY(30px);
@@ -1378,7 +1378,7 @@ textarea.input-field {
   }
 }
 
-/* ===== Hero Pin (GSAP ScrollTrigger) ===== */
+
 .hero-pin-wrapper {
   position: relative;
   z-index: 1;
@@ -1394,21 +1394,19 @@ textarea.input-field {
   z-index: 2;
 }
 
-/* ===== Nav Theme Transitions ===== */
+
 .navbar {
   transition: border-color 0.4s ease, background 0.4s ease, --nav-accent 0.4s ease;
 }
 
-/* ══════════════════════════════════════════════════════
-   SCROLLYTELLING LANDING PAGE
-   ══════════════════════════════════════════════════════ */
+
 
 .landing-page {
   position: relative;
   z-index: 1;
 }
 
-/* ── Hero ── */
+
 .landing-hero {
   min-height: 100vh;
   display: flex;
@@ -1496,7 +1494,7 @@ textarea.input-field {
   50%      { transform: translateX(-50%) translateY(8px); opacity: 1; }
 }
 
-/* ── Intro Section ── */
+
 .landing-intro {
   min-height: 80vh;
   display: flex;
@@ -1533,7 +1531,7 @@ textarea.input-field {
   line-height: 1.8;
 }
 
-/* ── Section Inner Container ── */
+
 .landing-section-inner {
   max-width: 1200px;
   margin: 0 auto;
@@ -1541,7 +1539,7 @@ textarea.input-field {
   position: relative;
 }
 
-/* ── Tool Sections ── */
+
 .landing-section {
   min-height: 90vh;
   display: flex;
@@ -1709,7 +1707,7 @@ textarea.input-field {
   transform: translateX(3px);
 }
 
-/* ── Terminal Visual ── */
+
 .landing-terminal {
   background: rgba(5, 8, 18, 0.8);
   border: 1px solid rgba(148, 163, 184, 0.1);
@@ -1766,7 +1764,7 @@ textarea.input-field {
   font-weight: 600;
 }
 
-/* ── Footer Strip ── */
+
 .landing-footer-strip {
   padding: var(--space-3xl) var(--space-xl);
   background: #060a14;
@@ -1811,7 +1809,7 @@ textarea.input-field {
   background: color-mix(in srgb, var(--link-accent) 8%, transparent);
 }
 
-/* ── Hex Viewer ── */
+
 .hex-viewer-container {
   font-family: var(--font-mono);
   font-size: 0.85rem;
@@ -1904,7 +1902,7 @@ textarea.input-field {
   font-weight: bold;
 }
 
-/* ── Responsive ── */
+
 @media (max-width: 768px) {
   .landing-intro-grid {
     grid-template-columns: 1fr;

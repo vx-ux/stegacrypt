@@ -1,31 +1,14 @@
-/**
- * AES-256-GCM Encryption Module
- *
- * Provides authenticated encryption using the Web Crypto API.
- * Replaces the old XOR cipher with industry-standard AES-256-GCM.
- *
- * Key derivation: PBKDF2 (310,000 iterations) + SHA-256
- * Binary layout:  salt(16 bytes) + iv(12 bytes) + ciphertext (includes GCM auth tag)
- *
- * All functions work in both the main thread and Web Workers.
- */
+
 
 const PBKDF2_ITERATIONS = 310_000; // OWASP 2023 recommendation for SHA-256
 const SALT_LENGTH = 16;            // bytes
-const IV_LENGTH   = 12;            // bytes — GCM standard nonce size
+const IV_LENGTH   = 12;            // bytes - GCM standard nonce size
 const KEY_LENGTH  = 256;           // bits
 
-/**
- * AES overhead in bytes: salt + IV + GCM auth tag (16 bytes) + 1 flag byte
- */
+
 export const AES_OVERHEAD = SALT_LENGTH + IV_LENGTH + 16 + 1;
 
-/**
- * Derives a CryptoKey from a user password using PBKDF2 + SHA-256.
- * @param {string} password
- * @param {Uint8Array} salt — 16 random bytes
- * @returns {Promise<CryptoKey>}
- */
+
 async function deriveKey(password, salt) {
   const enc = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
@@ -49,12 +32,7 @@ async function deriveKey(password, salt) {
   );
 }
 
-/**
- * Encrypts plaintext bytes with AES-256-GCM.
- * @param {Uint8Array} plaintextBytes — raw bytes to encrypt
- * @param {string} password
- * @returns {Promise<Uint8Array>} — binary layout: [salt(16)] + [iv(12)] + [ciphertext + auth tag]
- */
+
 export async function aesEncrypt(plaintextBytes, password) {
   const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
   const iv   = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
@@ -75,13 +53,7 @@ export async function aesEncrypt(plaintextBytes, password) {
   return out;
 }
 
-/**
- * Decrypts a payload produced by aesEncrypt.
- * @param {Uint8Array} payload — the combined salt + iv + ciphertext bytes
- * @param {string} password
- * @returns {Promise<Uint8Array>} — original plaintext bytes
- * @throws {DOMException} OperationError if password is wrong or data is corrupted
- */
+
 export async function aesDecrypt(payload, password) {
   const salt   = payload.slice(0, SALT_LENGTH);
   const iv     = payload.slice(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
@@ -97,13 +69,8 @@ export async function aesDecrypt(payload, password) {
   return new Uint8Array(plainBuffer);
 }
 
-// ─── Bit/Byte conversion helpers ─────────────────────────────────────────────
 
-/**
- * Converts a Uint8Array to a bit array (MSB first per byte).
- * @param {Uint8Array} bytes
- * @returns {number[]} array of 0s and 1s
- */
+
 export function bytesToBits(bytes) {
   const bits = [];
   for (const byte of bytes) {
@@ -114,11 +81,7 @@ export function bytesToBits(bytes) {
   return bits;
 }
 
-/**
- * Converts a bit array back to a Uint8Array.
- * @param {number[]} bits — array of 0s and 1s (length must be a multiple of 8)
- * @returns {Uint8Array}
- */
+
 export function bitsToBytes(bits) {
   const bytes = new Uint8Array(Math.floor(bits.length / 8));
   for (let i = 0; i < bytes.length; i++) {

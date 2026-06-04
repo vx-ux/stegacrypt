@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { Upload, CheckCircle, XCircle, Copy, Info, Loader } from './Icons';
 
-// ─── MD5 implementation (Web Crypto doesn't support MD5) ─────────────────────
 
 function md5(buffer) {
   const bytes = new Uint8Array(buffer);
@@ -58,7 +57,6 @@ function md5(buffer) {
   return Array.from(new Uint8Array(result.buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// ─── Hash computation ────────────────────────────────────────────────────────
 
 async function computeHash(buffer, algorithm) {
   if (algorithm === 'MD5') return md5(buffer);
@@ -78,7 +76,6 @@ async function computeAllHashes(buffer) {
   return { md5: md5Hash, sha1, sha256, sha512, elapsed };
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
 
 export default function HashVerifier() {
   const [mode, setMode] = useState('single'); // 'single' | 'compare'

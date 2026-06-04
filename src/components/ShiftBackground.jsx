@@ -1,11 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { createNoise3D } from 'simplex-noise';
 
-/**
- * ShiftBackground — Full-viewport animated canvas background.
- * Uses simplex noise to drive slowly shifting gradient blobs/waves.
- * Color palette: deep navy #0a0f1e, electric blue #0ea5e9, teal #14b8a6.
- */
+
 export default function ShiftBackground() {
   const canvasRef = useRef(null);
 
@@ -17,7 +13,6 @@ export default function ShiftBackground() {
     const noise3D = createNoise3D();
     let animationId;
 
-    // ── Blob configuration ──
     const BLOB_COUNT = 5;
     const blobs = Array.from({ length: BLOB_COUNT }, (_, i) => ({
       // Each blob has a unique noise offset so they move independently
@@ -26,13 +21,12 @@ export default function ShiftBackground() {
       noiseOffsetR: i * 100 + 200,
       // Base radius as a fraction of the smaller viewport dimension
       baseRadiusFactor: 0.18 + Math.random() * 0.14,
-      // Color assignment — cycle between electric blue and teal
+      // Color assignment - cycle between electric blue and teal
       color: i % 2 === 0 ? { r: 14, g: 165, b: 233 } : { r: 20, g: 184, b: 166 },
       // Opacity range
       alpha: 0.04 + Math.random() * 0.035,
     }));
 
-    // ── Sizing ──
     function resize() {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = window.innerWidth * dpr;
@@ -42,7 +36,6 @@ export default function ShiftBackground() {
     resize();
     window.addEventListener('resize', resize);
 
-    // ── Animation loop ──
     const SPEED = 0.00012; // Very slow drift
 
     function draw(time) {

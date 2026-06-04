@@ -149,7 +149,7 @@ export default function MetadataViewer() {
     <div className="tool-section fade-in-up">
       <div className="tool-header">
         <h2>Metadata Extraction</h2>
-        <p>Parse metadata from images — supports JPEG EXIF, PNG chunks, GIF, WebP, BMP, and TIFF. Strip metadata for privacy.</p>
+        <p>Parse metadata from images - supports JPEG EXIF, PNG chunks, GIF, WebP, BMP, and TIFF. Strip metadata for privacy.</p>
       </div>
 
       <div className="glass-card">
@@ -166,7 +166,7 @@ export default function MetadataViewer() {
             <>
               <div className="drop-zone-icon"><Upload size={32} /></div>
               <p className="drop-zone-text">Drop image(s) here or click to upload</p>
-              <p className="drop-zone-hint">JPEG, PNG, GIF, WebP, BMP, TIFF — multiple files supported</p>
+              <p className="drop-zone-hint">JPEG, PNG, GIF, WebP, BMP, TIFF - multiple files supported</p>
             </>
           )}
           <input

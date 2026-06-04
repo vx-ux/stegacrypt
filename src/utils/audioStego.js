@@ -1,21 +1,7 @@
-/**
- * Audio LSB Steganography — WAV file support (v2)
- *
- * Hides text messages in the Least Significant Bits of 16-bit PCM WAV audio samples.
- * The change to each sample is ±1 amplitude unit — completely inaudible.
- *
- * Format support: PCM WAV (16-bit, mono or stereo)
- *
- * v2 changes:
- * - AES-256-GCM encryption replaces XOR cipher
- * - New "STC2" magic header for v2 format
- * - UTF-8 encoding via TextEncoder (fixes Unicode/emoji corruption)
- * - Backward-compatible: decodeAudio() falls back to legacy "STCR" (v1 XOR) format
- */
+
 
 import { aesEncrypt, aesDecrypt, bytesToBits, bitsToBytes, AES_OVERHEAD } from './crypto.js';
 
-// ─── Constants ───────────────────────────────────────────────────────────────
 
 const MAGIC_V2 = 'STC2';
 const MAGIC_V1 = 'STCR';
@@ -24,7 +10,6 @@ const LENGTH_BITS = 32;
 const FLAG_PLAIN     = 0x00;
 const FLAG_ENCRYPTED = 0x01;
 
-// ─── Legacy helpers (kept for v1 backward compatibility in decode) ────────────
 
 function xorCipher(text, password) {
   if (!password) return text;
@@ -72,16 +57,8 @@ function bitsToNumber(bits) {
   return num;
 }
 
-// ─── WAV Parser ───────────────────────────────────────────────────────────────
 
-/**
- * Parse a WAV ArrayBuffer and return metadata + data chunk location.
- * Throws a descriptive error if the file is not a supported PCM WAV.
- *
- * @param {ArrayBuffer} buffer
- * @returns {{ dataView: DataView, sampleOffset: number, numSamples: number,
- *             bitsPerSample: number, numChannels: number, sampleRate: number }}
- */
+
 function parseWav(buffer) {
   const dv = new DataView(buffer);
 
@@ -136,14 +113,8 @@ function parseWav(buffer) {
   return { dataView: dv, sampleOffset: dataOffset, numSamples, bitsPerSample, numChannels, sampleRate };
 }
 
-// ─── Capacity ─────────────────────────────────────────────────────────────────
 
-/**
- * Calculate maximum characters that can be hidden in this WAV file.
- * @param {ArrayBuffer} buffer
- * @param {boolean} encrypted - Whether AES encryption will be used
- * @returns {number} max characters
- */
+
 export function getAudioCapacity(buffer, encrypted = false) {
   const { numSamples } = parseWav(buffer);
   const headerBits = MAGIC_LENGTH * 8 + LENGTH_BITS;
@@ -159,19 +130,8 @@ export function getAudioCapacity(buffer, encrypted = false) {
   return Math.max(0, availableBytes);
 }
 
-// ─── Encode (v2) ──────────────────────────────────────────────────────────────
 
-/**
- * Encode a message into the LSBs of WAV audio samples (v2 format).
- * Returns a new ArrayBuffer representing the modified WAV file.
- *
- * Wire format: MAGIC("STC2", 4B) + PAYLOAD_LENGTH(4B) + FLAG(1B) + PAYLOAD
- *
- * @param {ArrayBuffer} buffer   - Original WAV file
- * @param {string}      message  - Text to hide
- * @param {string}      password - Optional password for AES-256-GCM encryption
- * @returns {Promise<ArrayBuffer>} New WAV buffer with embedded message
- */
+
 export async function encodeAudio(buffer, message, password = '') {
   const { dataView, sampleOffset, numSamples } = parseWav(buffer);
 
@@ -221,16 +181,8 @@ export async function encodeAudio(buffer, message, password = '') {
   return outBuffer;
 }
 
-// ─── Decode (v2 with v1 fallback) ─────────────────────────────────────────────
 
-/**
- * Decode a hidden message from WAV audio sample LSBs.
- * Supports both v2 (STC2 / AES-256-GCM) and v1 (STCR / XOR) formats.
- *
- * @param {ArrayBuffer} buffer   - WAV file potentially containing a hidden message
- * @param {string}      password - Password used during encoding (if any)
- * @returns {Promise<string>} Decoded message
- */
+
 export async function decodeAudio(buffer, password = '') {
   const { dataView, sampleOffset, numSamples } = parseWav(buffer);
 
@@ -256,9 +208,7 @@ export async function decodeAudio(buffer, password = '') {
   }
 }
 
-/**
- * Decode v2 format: STC2 + LENGTH(4B) + FLAG(1B) + PAYLOAD
- */
+
 async function decodeV2(allBits, password) {
   const headerStart = MAGIC_LENGTH * 8;
 
@@ -286,10 +236,7 @@ async function decodeV2(allBits, password) {
   }
 }
 
-/**
- * Decode legacy v1 format: STCR + LENGTH(4B) + MESSAGE (charCode-based, optional XOR)
- * Kept for backward compatibility with audio encoded before the AES upgrade.
- */
+
 function decodeLegacyV1(allBits, password) {
   const lengthStart = MAGIC_LENGTH * 8;
   const messageLength = bitsToNumber(allBits.slice(lengthStart, lengthStart + LENGTH_BITS));
@@ -306,16 +253,8 @@ function decodeLegacyV1(allBits, password) {
   return decoded;
 }
 
-// ─── Waveform visualization (unchanged) ──────────────────────────────────────
 
-/**
- * Generate a downsampled waveform amplitude array for visualization.
- * Returns an array of values in the range [0, 1] representing amplitude.
- *
- * @param {ArrayBuffer} buffer    - WAV file
- * @param {number}      numPoints - Number of points to return (e.g. 300 for a bar chart)
- * @returns {number[]} Normalized amplitude array
- */
+
 export function getWaveformData(buffer, numPoints = 300) {
   const { dataView, sampleOffset, numSamples } = parseWav(buffer);
 

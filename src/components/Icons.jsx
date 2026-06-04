@@ -1,7 +1,4 @@
-/**
- * Inline SVG icons — Lucide-style, 24x24 viewBox
- * No external dependencies needed.
- */
+
 
 const defaultProps = {
   width: 20,

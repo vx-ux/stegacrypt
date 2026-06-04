@@ -50,7 +50,7 @@ function Navbar({ activeTab, setActiveTab }) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Section-based nav theme — update CSS custom properties
+  // Section-based nav theme - update CSS custom properties
   useEffect(() => {
     const theme = NAV_THEMES[activeTab] || NAV_THEMES.home;
     const root = document.documentElement;

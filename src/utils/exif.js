@@ -1,26 +1,16 @@
-/**
- * EXIF Metadata Extraction
- * Parses JPEG EXIF data from ArrayBuffer.
- * Lightweight implementation — no external dependencies.
- */
 
-/**
- * Read a 16-bit unsigned integer (big-endian or little-endian)
- */
+
+
 function readUint16(dataView, offset, littleEndian) {
   return dataView.getUint16(offset, littleEndian);
 }
 
-/**
- * Read a 32-bit unsigned integer
- */
+
 function readUint32(dataView, offset, littleEndian) {
   return dataView.getUint32(offset, littleEndian);
 }
 
-/**
- * Read an ASCII string from a DataView
- */
+
 function readString(dataView, offset, length) {
   let str = '';
   for (let i = 0; i < length; i++) {
@@ -31,9 +21,7 @@ function readString(dataView, offset, length) {
   return str.trim();
 }
 
-/**
- * Read a rational number (two 32-bit integers)
- */
+
 function readRational(dataView, offset, littleEndian) {
   const numerator = readUint32(dataView, offset, littleEndian);
   const denominator = readUint32(dataView, offset + 4, littleEndian);
@@ -80,9 +68,7 @@ const GPS_TAGS = {
   0x0006: 'GPSAltitude',
 };
 
-/**
- * Parse IFD (Image File Directory) entries
- */
+
 function parseIFD(dataView, tiffStart, ifdOffset, littleEndian, tagMap) {
   const entries = {};
   const numEntries = readUint16(dataView, tiffStart + ifdOffset, littleEndian);
@@ -154,9 +140,7 @@ function parseIFD(dataView, tiffStart, ifdOffset, littleEndian, tagMap) {
   return entries;
 }
 
-/**
- * Convert GPS DMS to decimal degrees
- */
+
 function dmsToDecimal(dms, ref) {
   if (!Array.isArray(dms) || dms.length !== 3) return null;
   let decimal = dms[0] + dms[1] / 60 + dms[2] / 3600;
@@ -164,11 +148,7 @@ function dmsToDecimal(dms, ref) {
   return decimal;
 }
 
-/**
- * Extract EXIF metadata from a file ArrayBuffer
- * @param {ArrayBuffer} buffer - The file data
- * @returns {object} Extracted metadata
- */
+
 export function extractExif(buffer) {
   const dataView = new DataView(buffer);
   const metadata = {
@@ -196,7 +176,7 @@ export function extractExif(buffer) {
     const markerType = dataView.getUint8(offset + 1);
 
     if (markerType === 0xE1) {
-      // APP1 — EXIF data
+      // APP1 - EXIF data
       const segmentLength = readUint16(dataView, offset + 2, false);
 
       // Check for "Exif\0\0" header
@@ -268,7 +248,7 @@ export function extractExif(buffer) {
 
       break;
     } else if (markerType === 0xDA) {
-      // Start of Scan — no more metadata after this
+      // Start of Scan - no more metadata after this
       break;
     } else {
       const segLen = readUint16(dataView, offset + 2, false);
@@ -279,9 +259,7 @@ export function extractExif(buffer) {
   return metadata;
 }
 
-/**
- * Get human-readable metadata for display
- */
+
 export function formatMetadata(metadata) {
   const items = [];
 

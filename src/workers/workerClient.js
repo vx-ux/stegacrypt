@@ -23,13 +23,7 @@ function getWorker() {
   return workerInstance;
 }
 
-/**
- * Run a task on the web worker
- * @param {string} type - The task type (e.g. 'lsb:encode')
- * @param {object} payload - The data to pass to the worker
- * @param {ArrayBuffer[]} transfer - Optional array of ArrayBuffers to transfer ownership of (zero-copy)
- * @returns {Promise<any>}
- */
+
 export function runWorkerTask(type, payload, transfer = []) {
   return new Promise((resolve, reject) => {
     const worker = getWorker();

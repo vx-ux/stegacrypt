@@ -1,12 +1,6 @@
 import { Component } from 'react';
 
-/**
- * ErrorBoundary — catches uncaught JS errors in child component trees
- * and renders a styled fallback instead of crashing the whole app.
- *
- * Must be a class component — React's getDerivedStateFromError / componentDidCatch
- * APIs are not available in functional components.
- */
+
 export default class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
@@ -18,7 +12,7 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
-    // Log to console for debugging — swap for a real logger if needed
+    // Log to console for debugging - swap for a real logger if needed
     console.error('[StegaCrypt] Uncaught error in tool component:', error, info);
   }
 

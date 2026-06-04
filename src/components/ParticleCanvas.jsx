@@ -1,15 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-/**
- * ParticleCanvas — cyberpunk dot-network animation
- *
- * Renders an animated particle grid onto a <canvas> element:
- * - Dots drift slowly across the canvas
- * - Lines connect dots that are within CONNECTION_DISTANCE of each other
- * - Mouse proximity pulls nearby dots gently toward the cursor
- * - Colors use the StegaCrypt cyan/purple accent palette
- * - Full cleanup on unmount (RAF cancelled, resize observer disconnected)
- */
+
 
 const PARTICLE_COUNT = 80;
 const CONNECTION_DISTANCE = 140;
@@ -159,7 +150,7 @@ export default function ParticleCanvas() {
       mouseRef.current = { x: -9999, y: -9999 };
     }
 
-    // Resize observer — reacts to hero section size changes
+    // Resize observer - reacts to hero section size changes
     const ro = new ResizeObserver(resize);
     ro.observe(canvas.parentElement);
 

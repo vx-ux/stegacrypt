@@ -25,7 +25,7 @@ export default function TextStego() {
       setStatus({ type: 'success', text: `Message hidden. ${stats.hiddenCharCount} invisible characters embedded.${password ? ' (AES-256-GCM encrypted)' : ''}` });
     } catch (err) {
       if (err.name === 'OperationError') {
-        setStatus({ type: 'error', text: 'Encryption failed — invalid password.' });
+        setStatus({ type: 'error', text: 'Encryption failed - invalid password.' });
       } else {
         setStatus({ type: 'error', text: err.message });
       }
@@ -42,10 +42,10 @@ export default function TextStego() {
       setDecodedMessage(decoded);
       const stats = analyzeText(decodeInput);
       setAnalysis(stats);
-      setStatus({ type: 'success', text: `Hidden message found — ${decoded.length} characters decoded.` });
+      setStatus({ type: 'success', text: `Hidden message found - ${decoded.length} characters decoded.` });
     } catch (err) {
       if (err.name === 'OperationError') {
-        setStatus({ type: 'error', text: 'Decryption failed — wrong password or corrupted data.' });
+        setStatus({ type: 'error', text: 'Decryption failed - wrong password or corrupted data.' });
       } else {
         setStatus({ type: 'error', text: err.message });
       }
@@ -139,7 +139,7 @@ export default function TextStego() {
 
             {outputText && (
               <div style={{ marginTop: 'var(--space-lg)' }}>
-                <label className="input-label">Output — copy this text (it contains the hidden message)</label>
+                <label className="input-label">Output - copy this text (it contains the hidden message)</label>
                 <div className="encoded-output" style={{ userSelect: 'all' }}>
                   {outputText}
                 </div>
