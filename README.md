@@ -6,6 +6,8 @@
 ![React](https://img.shields.io/badge/react-18.0-61DAFB?style=flat-square&logo=react)
 ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
 
+**[Live Demo](https://stegacrypt-5ocemg0zx-vx-uxs-projects.vercel.app/)**
+
 ![StegaCrypt Homepage](homepage.png)
 
 StegaCrypt is a client-side steganography toolkit that runs entirely within the browser. It supports embedding and extracting hidden payloads in image and audio files, optional AES-256-GCM encryption of those payloads, and statistical steganalysis for detecting hidden data. Every operation executes locally via native browser APIs. Nothing is transmitted externally.
